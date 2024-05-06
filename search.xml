@@ -4,6 +4,31 @@
   
     
     <entry>
+      <title>MySQL performance_schema 系统表性能监控常用SQL</title>
+      <link href="/2024/05/06/MySQL-performance-schema-%E7%B3%BB%E7%BB%9F%E8%A1%A8%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%B8%B8%E7%94%A8SQL/"/>
+      <url>/2024/05/06/MySQL-performance-schema-%E7%B3%BB%E7%BB%9F%E8%A1%A8%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%B8%B8%E7%94%A8SQL/</url>
+      
+        <content type="html"><![CDATA[<h3 id="1、哪类的SQL执行最多？"><a href="#1、哪类的SQL执行最多？" class="headerlink" title="1、哪类的SQL执行最多？"></a>1、哪类的SQL执行最多？</h3><p>SELECT DIGEST_TEXT,COUNT_STAR,FIRST_SEEN,LAST_SEEN FROM events_statements_summary_by_digest ORDER BY COUNT_STAR DESC</p><h3 id="2、哪类SQL的平均响应时间最多？"><a href="#2、哪类SQL的平均响应时间最多？" class="headerlink" title="2、哪类SQL的平均响应时间最多？"></a>2、哪类SQL的平均响应时间最多？</h3><p>SELECT DIGEST_TEXT,AVG_TIMER_WAIT FROM events_statements_summary_by_digest ORDER BY COUNT_STAR DESC</p><h3 id="3、哪类SQL排序记录数最多？"><a href="#3、哪类SQL排序记录数最多？" class="headerlink" title="3、哪类SQL排序记录数最多？"></a>3、哪类SQL排序记录数最多？</h3><p>SELECT DIGEST_TEXT,SUM_SORT_ROWS FROM events_statements_summary_by_digest ORDER BY COUNT_STAR DESC</p><h3 id="4、哪类SQL扫描记录数最多？"><a href="#4、哪类SQL扫描记录数最多？" class="headerlink" title="4、哪类SQL扫描记录数最多？"></a>4、哪类SQL扫描记录数最多？</h3><p>SELECT DIGEST_TEXT,SUM_ROWS_EXAMINED FROM events_statements_summary_by_digest ORDER BY COUNT_STAR DESC</p><h3 id="5、哪类SQL使用临时表最多？"><a href="#5、哪类SQL使用临时表最多？" class="headerlink" title="5、哪类SQL使用临时表最多？"></a>5、哪类SQL使用临时表最多？</h3><p>SELECT DIGEST_TEXT,SUM_CREATED_TMP_TABLES,SUM_CREATED_TMP_DISK_TABLES FROM events_statements_summary_by_digest ORDER BY COUNT_STAR DESC</p><h3 id="6、哪类SQL返回结果集最多？"><a href="#6、哪类SQL返回结果集最多？" class="headerlink" title="6、哪类SQL返回结果集最多？"></a>6、哪类SQL返回结果集最多？</h3><p>SELECT DIGEST_TEXT,SUM_ROWS_SENT FROM events_statements_summary_by_digest ORDER BY COUNT_STAR DESC</p><h3 id="7、哪个表物理IO最多？"><a href="#7、哪个表物理IO最多？" class="headerlink" title="7、哪个表物理IO最多？"></a>7、哪个表物理IO最多？</h3><p>SELECT file_name,event_name,SUM_NUMBER_OF_BYTES_READ,SUM_NUMBER_OF_BYTES_WRITE FROM file_summary_by_instance ORDER BY SUM_NUMBER_OF_BYTES_READ + SUM_NUMBER_OF_BYTES_WRITE DESC</p><h3 id="8、哪个表逻辑IO最多？"><a href="#8、哪个表逻辑IO最多？" class="headerlink" title="8、哪个表逻辑IO最多？"></a>8、哪个表逻辑IO最多？</h3><p>SELECT object_name,COUNT_READ,COUNT_WRITE,COUNT_FETCH,SUM_TIMER_WAIT FROM table_io_waits_summary_by_table ORDER BY sum_timer_wait DESC</p><h3 id="9、哪个索引访问最多？"><a href="#9、哪个索引访问最多？" class="headerlink" title="9、哪个索引访问最多？"></a>9、哪个索引访问最多？</h3><p>SELECT OBJECT_NAME,INDEX_NAME,COUNT_FETCH,COUNT_INSERT,COUNT_UPDATE,COUNT_DELETE FROM table_io_waits_summary_by_index_usage ORDER BY SUM_TIMER_WAIT DESC</p><h3 id="10、哪个索引从来没有用过？"><a href="#10、哪个索引从来没有用过？" class="headerlink" title="10、哪个索引从来没有用过？"></a>10、哪个索引从来没有用过？</h3><p>SELECT OBJECT_SCHEMA,OBJECT_NAME,INDEX_NAME FROM table_io_waits_summary_by_index_usage WHERE INDEX_NAME IS NOT NULL AND COUNT_STAR &#x3D; 0 AND OBJECT_SCHEMA &lt;&gt; ‘mysql’ ORDER BY OBJECT_SCHEMA,OBJECT_NAME;</p><h3 id="11、哪个等待事件消耗时间最多？"><a href="#11、哪个等待事件消耗时间最多？" class="headerlink" title="11、哪个等待事件消耗时间最多？"></a>11、哪个等待事件消耗时间最多？</h3><p>SELECT EVENT_NAME,COUNT_STAR,SUM_TIMER_WAIT,AVG_TIMER_WAIT FROM events_waits_summary_global_by_event_name WHERE event_name !&#x3D; ‘idle’ ORDER BY SUM_TIMER_WAIT DESC</p><h3 id="12-1、剖析某条SQL的执行情况，包括statement信息，stege信息，wait信息"><a href="#12-1、剖析某条SQL的执行情况，包括statement信息，stege信息，wait信息" class="headerlink" title="12-1、剖析某条SQL的执行情况，包括statement信息，stege信息，wait信息"></a>12-1、剖析某条SQL的执行情况，包括statement信息，stege信息，wait信息</h3><p>SELECT EVENT_ID,sql_text FROM events_statements_history WHERE sql_text LIKE ‘%count(*)%’;</p><h3 id="12-2、查看每个阶段的时间消耗"><a href="#12-2、查看每个阶段的时间消耗" class="headerlink" title="12-2、查看每个阶段的时间消耗"></a>12-2、查看每个阶段的时间消耗</h3><p>SELECT event_id,EVENT_NAME,SOURCE,TIMER_END - TIMER_START FROM events_stages_history_long WHERE NESTING_EVENT_ID &#x3D; 1553;</p><h3 id="12-3、查看每个阶段的锁等待情况"><a href="#12-3、查看每个阶段的锁等待情况" class="headerlink" title="12-3、查看每个阶段的锁等待情况"></a>12-3、查看每个阶段的锁等待情况</h3><p>SELECT event_id,event_name,source,timer_wait,object_name,index_name,operation,nesting_event_id FROM events_waits_history_longWHERE nesting_event_id &#x3D; 1553;</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> 技术相关 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 笔记 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>LeetCode27 移除元素</title>
       <link href="/2024/01/10/LeetCode27-%E7%A7%BB%E9%99%A4%E5%85%83%E7%B4%A0/"/>
       <url>/2024/01/10/LeetCode27-%E7%A7%BB%E9%99%A4%E5%85%83%E7%B4%A0/</url>
