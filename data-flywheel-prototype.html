@@ -1,0 +1,1769 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>phase 1 · 生产回流飞轮 — 评测平台原型 v2</title>
+<style>
+:root{
+  --sidebar-w:238px; --header-h:52px;
+  --c-bg:#F6F7F9; --c-surface:#FFFFFF; --c-surface-hover:#F3F5F7;
+  --c-border:rgba(0,0,0,.08); --c-border-strong:rgba(0,0,0,.14);
+  --c-text:#1A1C1F; --c-text-2:#5C6068; --c-text-3:#9AA0AA;
+  --c-primary:#185FA5; --c-primary-bg:#E8F0FA;
+  --c-success:#3B6D11; --c-success-bg:#EDF5E6;
+  --c-warning:#BA7517; --c-warning-bg:#FBF2E1;
+  --c-danger:#E24B4A; --c-danger-bg:#FCEAEA;
+  --c-p0:#E24B4A;--c-p0-bg:#FDE8E8; --c-p1:#BA7517;--c-p1-bg:#FBF2E1; --c-p2:#6B7280;--c-p2-bg:#EEF0F2;
+  --radius-sm:6px; --radius-md:10px; --radius-lg:14px;
+  --shadow:0 8px 28px rgba(20,28,40,.16);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB',sans-serif;font-size:13px;color:var(--c-text);background:var(--c-bg);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+
+/* ── header ── */
+.header{height:var(--header-h);background:var(--c-surface);border-bottom:1px solid var(--c-border);display:flex;align-items:center;padding:0 20px;gap:14px;flex-shrink:0;z-index:50}
+.logo{font-weight:700;font-size:15px;letter-spacing:-.02em}
+.logo b{color:var(--c-primary)}
+.crumb{font-size:12px;color:var(--c-text-3);flex:1}
+.crumb b{color:var(--c-text-2);font-weight:500}
+.search{width:200px;height:32px;padding:0 12px;border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:12px;background:var(--c-bg);outline:none}
+.search:focus{border-color:var(--c-primary)}
+.btn{height:30px;padding:0 12px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);font-size:12px;color:var(--c-text-2);display:inline-flex;align-items:center;gap:5px;transition:.15s}
+.btn:hover{border-color:var(--c-border-strong);color:var(--c-text)}
+.btn.primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.btn.primary:hover{opacity:.92}
+.btn.sm{height:26px;padding:0 9px;font-size:11.5px}
+.btn.disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+
+/* ── layout ── */
+.body{display:flex;flex:1;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:var(--c-surface);border-right:1px solid var(--c-border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+
+/* ── 项目切换器（置于侧边栏顶部，最左常驻） ── */
+.proj{position:relative;display:flex;align-items:center;gap:8px;margin:10px 10px 4px;padding:9px 10px;border:1px solid var(--c-border);border-radius:var(--radius-md);background:var(--c-bg);cursor:pointer;transition:.12s;flex-shrink:0}
+.proj:hover{border-color:var(--c-border-strong)}
+.proj.open{border-color:var(--c-primary);box-shadow:0 0 0 2px var(--c-primary-bg)}
+.proj-info{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+.proj-avatar{width:28px;height:28px;border-radius:8px;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.proj-meta{min-width:0;flex:1}
+.proj-name{font-size:13px;font-weight:600;color:var(--c-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj-sub{font-size:10.5px;color:var(--c-text-3);margin-top:1px}
+.proj-caret{color:var(--c-text-3);font-size:11px;flex-shrink:0;transition:.15s}
+.proj.open .proj-caret{transform:rotate(180deg)}
+.proj-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--c-surface);border:1px solid var(--c-border-strong);border-radius:var(--radius-md);box-shadow:var(--shadow);padding:5px;z-index:100}
+.proj.open .proj-menu{display:block}
+.proj-item{display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:var(--radius-sm);font-size:13px;color:var(--c-text-2);cursor:pointer}
+.proj-item:hover{background:var(--c-surface-hover);color:var(--c-text)}
+.proj-item.active{color:var(--c-primary);font-weight:600}
+.proj-item:not(.active) .proj-check{display:none}
+.proj-check{margin-left:auto;font-size:12px}
+.proj-sep{height:1px;background:var(--c-border);margin:5px 4px}
+.proj-new{color:var(--c-primary)}
+.group-title{padding:16px 18px 6px;font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--c-text-3);text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 18px;margin:1px 8px;border-radius:var(--radius-sm);font-size:13px;color:var(--c-text-2);cursor:pointer;transition:.12s;position:relative}
+.nav-item:hover{background:var(--c-surface-hover);color:var(--c-text)}
+.nav-item.active{background:var(--c-primary-bg);color:var(--c-primary);font-weight:600}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:18px;border-radius:0 3px 3px 0;background:var(--c-primary)}
+.badge{margin-left:auto;font-size:11px;padding:1px 7px;border-radius:10px;background:var(--c-border);color:var(--c-text-3);font-weight:600}
+.badge.p0{background:var(--c-p0-bg);color:var(--c-p0)}
+.badge.warn{background:var(--c-warning-bg);color:var(--c-warning)}
+
+/* ── 内嵌树（测试集页专用）── */
+/* 评测集浏览：顶部分面导航（替代左侧树） */
+.scope-bar{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:14px}
+.scope-groups{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.scope-group{padding:6px 14px;border:1px solid var(--c-border);border-radius:20px;font-size:13px;color:var(--c-text-2);cursor:pointer;background:#fff;transition:.15s;white-space:nowrap}
+.scope-group:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.scope-group.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff;font-weight:500}
+.scope-subs{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--c-border)}
+.scope-sub{padding:4px 12px;border-radius:16px;font-size:12px;color:var(--c-text-2);background:var(--c-surface-hover);cursor:pointer;transition:.15s;white-space:nowrap}
+.scope-sub:hover{color:var(--c-primary)}
+.scope-sub.active{background:var(--c-primary-bg);color:var(--c-primary);font-weight:500}
+.scope-sub .cnt{margin-left:5px;font-size:11px;opacity:.7}
+.ds-crumb{font-size:12px;color:var(--c-text-3);margin-bottom:10px}
+.ds-crumb b{color:var(--c-text);font-weight:500}
+
+/* ── 评测集分面下钻（替代左侧深树）── */
+.ds-facets{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:14px}
+.facet-row{display:flex;align-items:flex-start;gap:10px}
+.facet-row + .facet-row{margin-top:10px;padding-top:10px;border-top:1px dashed var(--c-border)}
+.facet-label{flex:0 0 64px;font-size:12px;color:var(--c-text-3);padding-top:5px;font-weight:500}
+.facet-label .req{color:var(--c-danger)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{padding:4px 12px;border-radius:16px;font-size:12px;color:var(--c-text-2);background:var(--c-surface-hover);cursor:pointer;transition:.15s;white-space:nowrap;border:1px solid transparent}
+.chip:hover{color:var(--c-primary);border-color:var(--c-primary)}
+.chip.active{background:var(--c-primary);color:#fff;font-weight:500}
+.chip.muted{opacity:.45}
+.ds-facet-note{font-size:11px;color:var(--c-text-3);margin-top:8px;display:flex;align-items:center;gap:6px}
+.ds-facet-note .lv{color:var(--c-danger);font-weight:600}
+
+/* 等级徽章 */
+.lv-badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;line-height:1.6}
+.lv-badge.lv-p0{background:var(--c-danger-bg);color:var(--c-danger)}
+.lv-badge.lv-p1{background:#fff4e0;color:#C77700}
+.lv-badge.lv-p2{background:#eef2ff;color:#4257d6}
+.lv-badge.lv-n{background:var(--c-surface-hover);color:var(--c-text-3)}
+
+.main{flex:1;overflow-y:auto;padding:22px 26px 60px}
+
+/* ── page ── */
+.page{display:none;animation:fade .18s ease}
+.page.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.page-head{margin-bottom:18px}
+.page-title{font-size:19px;font-weight:700;margin-bottom:3px}
+.page-desc{font-size:13px;color:var(--c-text-2)}
+.actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+
+/* metrics cards */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.mcard{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:16px 18px}
+.mlabel{font-size:12px;color:var(--c-text-2);display:flex;justify-content:space-between;align-items:center}
+.mval{font-size:27px;font-weight:700;letter-spacing:-.03em;line-height:1.15;margin-top:4px}
+.msub{font-size:12px;margin-top:3px;color:var(--c-text-3)}
+.msub.up{color:var(--c-success)} .msub.down{color:var(--c-danger)}
+
+/* grid & card */
+.grid{display:flex;gap:16px}.grid-2{grid-template-columns:1fr 1fr;display:grid;gap:16px}
+.card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-lg);overflow:hidden}
+.card-h{padding:13px 18px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;justify-content:space-between}
+.card-h .t{font-size:14px;font-weight:600}
+.card-b{padding:14px 18px}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:9px 10px;color:var(--c-text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--c-border);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--c-border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr{cursor:pointer;transition:.1s}
+tbody tr:hover{background:var(--c-surface-hover)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--c-text-2)}
+.utt{display:inline-block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+.utt:hover{white-space:normal;overflow:visible}
+
+/* pills */
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pill{padding:6px 13px;border:1px solid var(--c-border);border-radius:20px;font-size:12.5px;color:var(--c-text-2);background:var(--c-surface);cursor:pointer;transition:.12s;display:flex;align-items:center;gap:6px}
+.pill:hover{border-color:var(--c-border-strong)}
+.pill.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.pill .cnt{font-size:11px;background:rgba(0,0,0,.07);padding:0 6px;border-radius:8px}
+.pill.active .cnt{background:rgba(255,255,255,.25)}
+
+/* tags */
+.tag{display:inline-flex;align-items:center;padding:1px 8px;border-radius:5px;font-size:11px;font-weight:600;line-height:18px}
+.tag.p0{background:var(--c-p0-bg);color:var(--c-p0)}.tag.p1{background:var(--c-p1-bg);color:var(--c-p1)}.tag.p2{background:var(--c-p2-bg);color:var(--c-p2)}
+.tag.ok{background:var(--c-success-bg);color:var(--c-success)}.tag.warn{background:var(--c-warning-bg);color:var(--c-warning)}.tag.err{background:var(--c-danger-bg);color:var(--c-danger)}.tag.gray{background:var(--c-p2-bg);color:var(--c-p2)}
+.score{display:inline-flex;align-items:center;justify-content:center;width:26px;height:22px;border-radius:5px;font-size:12px;font-weight:700}
+.score.s-low{background:var(--c-danger-bg);color:var(--c-danger)}.score.s-mid{background:var(--c-warning-bg);color:var(--c-warning)}.score.s-high{background:var(--c-success-bg);color:var(--c-success)}
+
+/* 仪表盘两栏 + 进度条 + 环形图 */
+.dash-row{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.mini-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--c-border)}
+.mini-stat{text-align:center}
+.mini-stat .v{font-size:16px;font-weight:700}
+.mini-stat .l{font-size:11px;color:var(--c-text-3);margin-top:2px}
+.bar{height:8px;background:var(--c-surface-hover);border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;background:var(--c-primary);border-radius:6px;transition:width .3s}
+
+/* ── 表头排序指示 ── */
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover{color:var(--c-primary)}
+.sort{display:inline-flex;align-items:center;gap:2px;margin-left:4px;color:var(--c-text-3);font-size:10px}
+th.sortable.asc .sort::after{content:'▲'}
+th.sortable.desc .sort::after{content:'▼'}
+th.sortable .sort::after{content:'⇅'}
+
+/* ── 抽屉顶栏元数据 ── */
+.dmeta{padding:10px 18px;border-bottom:1px solid var(--c-border);display:flex;flex-wrap:wrap;gap:14px 22px;background:var(--c-surface-hover)}
+.dmeta-item{display:flex;flex-direction:column;gap:3px;min-width:84px}
+.dmeta-item .k{font-size:10.5px;color:var(--c-text-3)}
+.dmeta-item .v{font-size:12.5px;font-weight:500;color:var(--c-text);display:flex;align-items:center;gap:4px}
+.dmeta-item .v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
+.dmeta-item .v .star{color:var(--c-warning)}
+
+/* ── 抽屉底部分页器 ── */
+.dfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 18px;border-top:1px solid var(--c-border)}
+.pager{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--c-text-2)}
+.pager button{height:24px;min-width:24px;padding:0 7px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);font-size:11.5px;color:var(--c-text-2)}
+.pager button:hover:not(:disabled){border-color:var(--c-primary);color:var(--c-primary)}
+.pager button:disabled{opacity:.4;cursor:not-allowed}
+.pager .pg-info{font-variant-numeric:tabular-nums}
+.foot-actions{display:flex;gap:8px}
+
+/* ── 抽屉结构化数据：推荐标签云 + 菜品详情 ── */
+.tag-cloud{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag-cloud .ct{font-size:11px;padding:2px 9px;border-radius:12px;background:var(--c-surface);color:var(--c-text-2);border:1px solid var(--c-border)}
+.dish-detail{margin-top:10px;padding:12px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface-hover)}
+.dish-detail .dd-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.dish-detail .dd-name{font-weight:600;font-size:13px}
+.dish-detail .dd-row{display:flex;gap:14px;font-size:12px;color:var(--c-text-2);flex-wrap:wrap}
+.dish-detail .dd-row b{color:var(--c-text);font-weight:600}
+
+/* ── 人工复核追踪字段 ── */
+.track-field{margin-bottom:12px}
+.track-field .tf-label{font-size:12px;font-weight:600;margin-bottom:5px;color:var(--c-text-2)}
+.track-field textarea{width:100%;height:60px;border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:8px;font-family:inherit;font-size:12.5px;resize:none;background:#fff;box-sizing:border-box}
+
+/* ── 候选入池状态 ── */
+.cand-bar{display:flex;gap:18px;align-items:center;margin-bottom:14px}
+.cand-stat{display:flex;flex-direction:column;gap:2px}
+.cand-stat .n{font-size:20px;font-weight:700}
+.cand-stat .l{font-size:11px;color:var(--c-text-3)}
+
+/* drawer */
+.overlay{position:fixed;inset:0;background:rgba(20,22,26,.32);opacity:0;pointer-events:none;transition:.2s;z-index:90}
+.overlay.show{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;height:100vh;width:680px;max-width:92vw;background:var(--c-surface);box-shadow:-8px 0 30px rgba(0,0,0,.12);transform:translateX(100%);transition:.24s cubic-bezier(.4,0,.2,1);z-index:100;display:flex;flex-direction:column}
+.drawer.show{transform:none}
+.dh{padding:14px 18px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;justify-content:space-between}
+.dh .t{font-size:14px;font-weight:600}
+.dtabs{display:flex;gap:4px;padding:0 14px;border-bottom:1px solid var(--c-border)}
+.dtab{padding:10px 12px;font-size:12.5px;color:var(--c-text-2);cursor:pointer;border-bottom:2px solid transparent}
+.dtab:hover{color:var(--c-text)}
+.dtab.active{color:var(--c-primary);border-bottom-color:var(--c-primary);font-weight:600}
+.dbody{flex:1;overflow-y:auto;padding:18px}
+.dfoot{padding:12px 18px;border-top:1px solid var(--c-border);display:flex;gap:8px;justify-content:flex-end}
+.bubble{max-width:82%;padding:9px 13px;border-radius:12px;margin-bottom:10px;font-size:12.5px;line-height:1.55}
+.bubble.u{background:var(--c-primary-bg);color:var(--c-text);margin-left:auto;border-bottom-right-radius:3px}
+.bubble.a{background:var(--c-surface-hover);color:var(--c-text);border-bottom-left-radius:3px}
+.kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--c-border);font-size:12.5px}
+.kv .k{color:var(--c-text-3)}
+.dim{font-size:12px;color:var(--c-text-3);line-height:1.6}
+.empty{padding:40px;text-align:center;color:var(--c-text-3)}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.35}
+.note{font-size:12px;color:var(--c-text-3);margin-top:10px;line-height:1.6}
+.flag{display:inline-block;background:var(--c-warning-bg);color:var(--c-warning);font-size:11px;padding:1px 7px;border-radius:5px;margin-left:6px}
+.sec-title{font-size:13px;font-weight:600;margin:18px 0 10px;color:var(--c-text)}
+.select{border:1px solid var(--c-border);border-radius:var(--radius-sm);height:32px;padding:0 10px;font-size:12.5px;background:var(--c-surface);outline:none;color:var(--c-text)}
+.legend{display:flex;gap:14px;font-size:11.5px;color:var(--c-text-3);margin-top:8px;align-items:center}
+.legend i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
+
+/* sub-tabs */
+.sub-tabs{display:flex;gap:0;border-bottom:1px solid var(--c-border);margin-bottom:16px}
+.sub-tab{padding:8px 16px;font-size:12.5px;color:var(--c-text-2);cursor:pointer;border-bottom:2px solid transparent}
+.sub-tab:hover{color:var(--c-text)}
+.sub-tab.active{color:var(--c-primary);border-bottom-color:var(--c-primary);font-weight:600}
+
+/* filter row */
+.filter-row{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.filter-row select,.filter-row input{height:32px;border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:0 10px;font-size:12px;background:var(--c-surface);outline:none}
+.filter-row input{width:200px}
+
+/* expand row */
+.expand-row{display:none}
+.expand-row.show{display:table-row}
+.expand-cell{background:var(--c-surface-hover);padding:12px 14px!important}
+
+/* selection counter */
+.sel-count{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--c-text-2)}
+.sel-count b{color:var(--c-primary);font-size:13px}
+
+/* modal */
+#modalRoot{display:none;position:fixed;inset:0;z-index:200}
+.modal-mask{position:absolute;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center}
+.modal{width:430px;max-width:92vw;background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden}
+.modal-h{padding:14px 16px;font-weight:600;font-size:14px;border-bottom:1px solid var(--c-border)}
+.modal-b{padding:16px}
+.fld{margin-bottom:13px;display:flex;flex-direction:column;gap:5px}
+.fld label{font-size:12px;color:var(--c-text-2)}
+.fld input,.fld select{height:32px;border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;background:var(--c-bg);color:var(--c-text);outline:none}
+.fld input[readonly]{background:var(--c-surface-hover);color:var(--c-text-3)}
+.modal-hint{font-size:12px;color:var(--c-text-3);background:var(--c-bg);padding:9px 11px;border-radius:var(--radius-sm);line-height:1.5}
+.modal-f{padding:12px 16px;border-top:1px solid var(--c-border);display:flex;justify-content:flex-end;gap:8px}
+/* toast */
+#toast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%) translateY(20px);background:var(--c-text);color:#fff;padding:10px 18px;border-radius:var(--radius-md);font-size:13px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.22s;z-index:300;display:flex;align-items:center;gap:8px}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast .gd{color:#F7C948}
+/* golden 页 */
+.gd-bar{display:flex;gap:12px;margin-bottom:14px}
+.gd-stat{flex:1;background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:12px 14px}
+.gd-stat .n{font-size:22px;font-weight:700}
+.gd-stat .l{font-size:12px;color:var(--c-text-3);margin-top:2px}
+.from-tag{display:inline-block;padding:1px 8px;border-radius:20px;font-size:11px;background:var(--c-surface-hover);color:var(--c-text-2);border:1px solid var(--c-border)}
+.set-tag{display:inline-block;padding:1px 8px;border-radius:20px;font-size:11px;background:#FBF1E0;color:#8A5710;border:1px solid #E7CfA0}
+/* golden 集合胶囊行 */
+.gset-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.gset-new{padding:6px 13px;border:1px dashed var(--c-border-strong);border-radius:20px;font-size:12.5px;color:var(--c-text-2);background:var(--c-surface);cursor:pointer;transition:.12s}
+.gset-new:hover{border-color:var(--c-primary);color:var(--c-primary)}
+/* golden 集合选择弹窗 */
+.gset-picker{display:flex;flex-direction:column;gap:8px;margin:10px 0;max-height:230px;overflow-y:auto}
+.gset-opt{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--c-border);border-radius:var(--radius-md);cursor:pointer;transition:.12s}
+.gset-opt:hover{border-color:var(--c-border-strong);background:var(--c-surface-hover)}
+.gset-opt:has(input:checked){border-color:var(--c-primary);background:var(--c-primary-bg)}
+.gset-opt input{margin:0;flex-shrink:0}
+.gset-opt-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.gset-opt-name{font-size:13px;color:var(--c-text);font-weight:500}
+.gset-opt-desc{font-size:11.5px;color:var(--c-text-3)}
+.gset-opt-cnt{font-size:11.5px;color:var(--c-text-3);flex-shrink:0}
+.gset-inline{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--c-border)}
+.gset-inline input{flex:1;height:32px;border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:0 10px;font-size:13px;background:var(--c-bg);color:var(--c-text);outline:none}
+.job-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.job-card{border:1px solid var(--c-border);border-radius:var(--radius-md);padding:12px 13px;background:var(--c-surface)}
+.job-card .jc-h{display:flex;align-items:center;gap:8px;font-weight:500;font-size:13.5px;margin-bottom:8px}
+.job-card .jc-cron{font-size:11px;color:var(--c-text-3);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;margin-bottom:8px}
+.job-card .jc-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;color:var(--c-text-2)}
+.job-card .jc-row b{color:var(--c-text);font-weight:500}
+.job-card .jc-note{font-size:11.5px;color:var(--c-text-3);margin-top:8px;padding-top:8px;border-top:1px solid var(--c-border)}
+.s-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
+.s-success{background:var(--c-success)} .s-running{background:var(--c-primary)} .s-fail{background:var(--c-danger)} .s-idle{background:var(--c-text-3)}
+.auto-strip{display:flex;gap:22px;flex-wrap:wrap;padding:12px 16px;border:1px solid var(--c-border);border-radius:var(--radius-md);background:var(--c-surface);margin-bottom:14px}
+.auto-strip .as{font-size:12px;color:var(--c-text-3)}
+.auto-strip .as b{display:block;font-size:14px;color:var(--c-text);font-weight:500;margin-top:2px}
+.alert-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--c-border);font-size:12.5px}
+.alert-item:last-child{border-bottom:none}
+.alert-item .ai-time{color:var(--c-text-3);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px}
+
+/* 评分详情 · 消息提示 & JSON 代码块 */
+.sd-msg{font-size:11.5px;line-height:1.7;padding:6px 10px;border-radius:var(--radius-sm);margin-bottom:6px;word-break:break-all}
+.sd-msg-err{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+.json-block{border:1px solid var(--c-border);border-radius:var(--radius-sm);margin-bottom:10px;overflow:hidden;background:#1e1e1e}
+.json-block.collapsed .jb-body{max-height:48px;overflow:hidden}
+.jb-head{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;background:#2d2d2d;border-bottom:1px solid #444}
+.jb-title{font-size:12px;font-weight:600;color:#e0e0e0}
+.jb-bar{display:flex;gap:4px}
+.jb-btn{font-size:11px;color:#9ca3af;cursor:pointer;padding:1px 6px;border-radius:3px;white-space:nowrap}
+.jb-btn:hover{color:#fff;background:#444}
+.jb-copy:hover{color:#4ade80!important}
+.jb-body{margin:0;padding:10px 14px;font-size:11.5px;line-height:1.55;color:#e0e0e0;font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;overflow:auto;max-height:220px;white-space:pre;user-select:text}
+
+/* ═══ 多轮对话（评分详情 · 对话内容 Tab） ═══ */
+.conv-turns{display:flex;flex-direction:column;gap:0}
+.ct-turn{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--c-border);transition:background .15s}
+.ct-turn:hover{background:var(--c-surface-hover)}
+.ct-turn:last-child{border-bottom:none}
+/* 左侧：标签 + query / 可见组件 */
+.ct-left{flex:0 0 420px;min-width:0;display:flex;flex-direction:column;gap:4px}
+.ct-label{font-size:11.5px;color:var(--c-text-3);margin-bottom:2px;font-weight:500}
+.ct-query{font-size:13px;color:var(--c-text-1);padding:6px 10px;border-radius:var(--radius-sm);background:var(--c-surface);cursor:default;border:1px solid transparent;transition:all .15s;line-height:1.5}
+.ct-query:hover,.ct-query.ct-hl{border-color:var(--c-primary);background:#eff6ff;box-shadow:0 0 0 2px rgba(59,130,246,.12)}
+/* 右侧：response */
+.ct-right{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;padding:4px 8px;border-radius:var(--radius-sm);border:1px solid transparent;transition:all .15s}
+.ct-right:hover,.ct-right.ct-hl{border-color:var(--c-primary);background:#f0f7ff;box-shadow:0 0 0 2px rgba(59,130,246,.08)}
+.ct-response{font-size:13px;line-height:1.65;color:var(--c-text-1)}
+.ct-extra{font-size:11.5px;color:var(--c-text-3);margin-top:2px;line-height:1.5}
+/* 分数角标 */
+.ct-score{align-self:flex-end;font-size:15px;font-weight:700;color:var(--c-danger);position:relative;top:-2px;right:-2px}
+.ct-score-sm{font-size:12.5px;color:var(--c-text-3)}
+/* 规则命中信息 */
+.ct-info{font-size:11px;color:#b45309;background:#fefce8;padding:3px 8px;border-radius:3px;margin-top:2px;border:1px solid #fde68a;line-height:1.5}
+/* 结构化标签行 */
+.ct-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.ct-t{font-size:10.5px;padding:1px 7px;border-radius:10px;border:1px solid var(--c-border);color:var(--c-text-3);white-space:nowrap}
+
+/* ── 可见组件渲染 ── */
+.ct-viz{border:1px solid var(--c-border);border-radius:var(--radius-sm);overflow:hidden;background:var(--c-surface);cursor:default;transition:all .15s;border:1px solid transparent}
+.ct-viz:hover,.ct-viz.ct-hl{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(59,130,246,.1)}
+/* 产品卡片型可见组件 */
+.ct-viz-card{padding:8px 10px}
+.vc-title{font-size:11.5px;font-weight:700;color:var(--c-text-1);margin-bottom:6px}
+.vc-item{display:flex;gap:8px}
+.vc-img{font-size:28px;width:36px;text-align:center;flex-shrink:0}
+.vc-body{flex:1;min-width:0}
+.vc-name{font-size:12.5px;margin-bottom:2px}
+.vc-desc{font-size:11px;color:var(--c-text-2);line-height:1.5;margin-bottom:4px}
+.vc-tags span{font-size:9.5px;padding:0 5px;border-radius:8px;border:1px solid var(--c-border);color:var(--c-text-3);margin-right:3px;display:inline-block;margin-bottom:2px}
+.vc-meta{font-size:11px;color:var(--c-text-3)}
+/* 简单文本卡片型 */
+.ct-viz-simple{padding:6px 10px}
+.vcs-title{font-size:11.5px;font-weight:600;margin-bottom:3px}
+.vcs-line{font-size:11px;color:var(--c-text-2);line-height:1.55}
+</style>
+</head>
+<body>
+
+<!-- ════════════ header ════════════ -->
+<div class="header">
+  <div class="logo">评测<b>工作台</b></div>
+  <div class="crumb" id="crumb">Dashboard / <b>概览</b></div>
+  <input class="search" placeholder="搜索 trace_id / 语料…">
+  <div class="avatar">PM</div>
+</div>
+
+<div class="body">
+  <!-- ════════════ 侧边栏（分组导航） ════════════ -->
+  <div class="sidebar">
+    <div class="proj" id="proj" onclick="toggleProj(event)">
+      <div class="proj-info">
+        <div class="proj-avatar">SP</div>
+        <div class="proj-meta">
+          <div class="proj-name" id="projName">智能点单 V2</div>
+          <div class="proj-sub" id="projSub">当前项目</div>
+        </div>
+      </div>
+      <span class="proj-caret">▾</span>
+      <div class="proj-menu" id="projMenu"></div>
+    </div>
+    <div class="group-title">总览</div>
+    <div class="nav-item active" data-page="dashboard" data-crumb="概览">Dashboard</div>
+
+    <div class="group-title">生产回流</div>
+    <div class="nav-item" data-page="capture" data-crumb="Trace监控">Trace监控</div>
+    <div class="nav-item" data-page="rules-filter" data-crumb="规则过滤">规则过滤</div>
+    <div class="nav-item" data-page="candidate" data-crumb="候选入池">候选入池</div>
+    <div class="nav-item" data-page="prdbad" data-crumb="Bad Case 待办集">Bad Case 待办集</div>
+
+    <div class="group-title">评测集</div>
+    <div class="nav-item" data-page="dataset-browser" data-crumb="测试集">测试集</div>
+    <div class="nav-item" data-page="golden" data-crumb="Golden Dataset">Golden Dataset</div>
+
+    <div class="group-title">评测执行</div>
+    <div class="nav-item" data-page="batch-run" data-crumb="批量运行">批量运行</div>
+    <div class="nav-item" data-page="exec-results" data-crumb="执行结果">执行结果</div>
+    <div class="nav-item" data-page="result" data-crumb="结果分析">结果分析</div>
+
+    <div class="group-title">规则与质量</div>
+    <div class="nav-item" data-page="cfg-rules" data-crumb="规则引擎">规则引擎</div>
+    <div class="nav-item" data-page="cfg-judge" data-crumb="Judge 配置">Judge 配置</div>
+    <div class="nav-item" data-page="issues" data-crumb="问题管理">问题管理</div>
+
+    <div class="group-title">标注</div>
+    <div class="nav-item" data-page="label" data-crumb="标注台">标注台</div>
+  </div>
+
+  <!-- ════════════ 主内容区 ════════════ -->
+  <div class="main" id="main"></div>
+</div>
+
+<!-- ════════════ 评分详情抽屉 ════════════ -->
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="dh"><div class="t" id="d-title">评分详情</div><button class="btn sm" onclick="closeDrawer()">✕ 关闭</button></div>
+  <div class="dmeta" id="d-meta"></div>
+  <div class="dtabs">
+    <div class="dtab active" data-tab="conv" onclick="switchTab('conv')">对话内容</div>
+    <div class="dtab" data-tab="data" onclick="switchTab('data')">结构化数据</div>
+    <div class="dtab" data-tab="ai" onclick="switchTab('ai')">AI 评分</div>
+    <div class="dtab" data-tab="human" onclick="switchTab('human')">人工复核</div>
+  </div>
+  <div class="dbody" id="d-body"></div>
+  <div class="dfoot">
+    <div class="pager">
+      <button onclick="prevCase()" id="prevBtn">‹ 上一页</button>
+      <span class="pg-info" id="pgInfo">1 / 1</span>
+      <button onclick="nextCase()" id="nextBtn">下一页 ›</button>
+    </div>
+    <div class="foot-actions">
+      <button class="btn sm" onclick="addCurToGolden()"><span style="color:#BA7517">★</span> 标 Golden</button><button class="btn sm">加入待办集</button>
+      <button class="btn primary sm" onclick="closeDrawer()">标记 Bad Case</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   Mock 数据（对照当前平台现状：2945 / 166 / 256）
+   ════════════════════════════════════════════ */
+const DATA = {
+  projects:['智能点单 V2','智能客服 V1','营销文案助手','合同审核助手','知识库问答'],
+  capture:{ today:1284, coverage:'98.2%', ruleHit:96, p0:3, recentRun:'batch_20260720_03', passRate:'94.2%' },
+  trend:[92.1,93.4,91.8,94.0,93.2,94.5,94.2],
+  ruleHitTrend:[86,92,79,96,88,94,96],
+  ruleHitDays:['07-14','07-15','07-16','07-17','07-18','07-19','07-20'],
+  /* 首页：Bad Case 构成（双源回流）与回归覆盖 */
+  prodSource:[
+    {label:'生产回流', value:2300, color:'var(--c-primary)'},
+    {label:'eval 失败', value:645, color:'var(--c-warning)'},
+  ],
+  regress:{covered:1826, total:2945},
+  badRule:{ hit:894, judge:2051, mix:[
+    {name:'推荐不相关', n:420, color:'#E8684A'},
+    {name:'必填字段空', n:180, color:'#F2A33C'},
+    {name:'格式不合规', n:96, color:'#5B8FF9'},
+    {name:'安全未拒答', n:45, color:'#E5484D'},
+    {name:'API调用失败', n:78, color:'#73D13D'},
+    {name:'时延超时', n:35, color:'#9254DE'},
+    {name:'用户点踩', n:40, color:'#F759AB'},
+  ]},
+  p0list:[
+    {id:'tr_8f2a1c', utter:'帮我点一杯冰美式少冰', why:'安全未拒答：用户诱导泄露配方', from:'生产回流'},
+    {id:'tr_4d9b7e', utter:'我想订30杯奶茶', why:'槽位缺失：未确认门店与送达时间', from:'eval失败'},
+    {id:'tr_b13f0a', utter:'推荐个好喝的', why:'推荐不相关：返回了咖啡而非茶饮', from:'生产回流'},
+  ],
+  channels:[
+    {name:'对话网关', today:642, coverage:'99.1%', status:'正常'},
+    {name:'下单 API', today:318, coverage:'97.4%', status:'正常'},
+    {name:'支付回调', today:201, coverage:'96.0%', status:'降级'},
+    {name:'知识库检索', today:123, coverage:'98.8%', status:'正常'},
+  ],
+  alerts:[
+    {t:'支付回调通道落盘率跌破 97%', lv:'warn', time:'12:04'},
+    {t:'规则「格式不合规」今日误报率 8.7%', lv:'warn', time:'11:30'},
+    {t:'候选池待 Judge 验证 5 条', lv:'err', time:'10:15'},
+    {t:'规则硬过滤 07-19 批次部分失败：3 条 trace 解析异常', lv:'err', time:'07-19 02:00'},
+  ],
+  rules:[
+    {name:'格式不合规', cond:'响应非 JSON / 缺必填字段', hit:23, mis:2, action:'直接判不达标', on:true},
+    {name:'API 调用失败', cond:'tool 返回 4xx/5xx', hit:14, mis:0, action:'直接判不达标', on:true},
+    {name:'必填字段空', cond:'order/slot 关键字段为空', hit:18, mis:1, action:'直接判不达标', on:true},
+    {name:'安全未拒答', cond:'涉敏诉求未触发拒答', hit:9, mis:0, action:'直接判不达标', lvl:'P0'},
+    {name:'用户点踩', cond:'会话中触发点踩 / 负反馈信号', hit:8, mis:0, action:'直接判不达标', lvl:'P0'},
+    {name:'时延超时', cond:'端到端响应时延 > 8s / 单轮超时', hit:6, mis:1, action:'直接判不达标', lvl:'P2'},
+  ],
+  prdbad:[
+    {trace:'tr_8f2a1c', utter:'帮我点一杯冰美式少冰', pri:'P0', retry:3, status:'顽固·待处理', source:'生产回流', batch:'v_20260720', score:1.8},
+    {trace:'tr_b13f0a', utter:'推荐个好喝的', pri:'P0', retry:2, status:'待处理', source:'生产回流', batch:'v_20260720', score:1.5},
+    {trace:'tr_4d9b7e', utter:'我想订30杯奶茶', pri:'P0', retry:1, status:'已入集', source:'eval失败', batch:'v_20260719', score:2.1},
+    {trace:'tr_7a90dd', utter:'我要退款昨天的订单', pri:'P1', retry:4, status:'顽固·待处理', source:'生产回流', batch:'v_20260720', score:2.3},
+    {trace:'tr_e21b44', utter:'预约明早取餐', pri:'P1', retry:1, status:'转人工', source:'生产回流', batch:'v_20260720', score:3.4},
+    {trace:'tr_91cd55', utter:'换一个甜的口味', pri:'P1', retry:2, status:'已入集', source:'eval失败', batch:'v_20260719', score:2.8},
+    {trace:'tr_a03f77', utter:'大杯还是中杯', pri:'P2', retry:1, status:'已豁免', source:'生产回流', batch:'v_20260718', score:4.0},
+    {trace:'tr_f62e18', utter:'加一份小食', pri:'P2', retry:3, status:'已入集', source:'生产回流', batch:'v_20260720', score:3.9},
+  ],
+  /* 候选入池：规则命中 + Judge 验证 统一入集评审台（正式入 prd_bad 前的候补池，trace_id 去重） */
+  candidates:[
+    /* —— 规则命中：硬过滤直接进候补池 —— */
+    {trace:'tr_91cd55', utter:'换一个甜的口味', via:'规则命中', rule:'推荐不相关', source:'eval失败', level:'P1', status:'待确认', score:2.8},
+    {trace:'tr_4d9b7e', utter:'我想订30杯奶茶', via:'规则命中', rule:'必填字段空', source:'eval失败', level:'P0', status:'已采纳', score:2.1},
+    {trace:'tr_a03f77', utter:'大杯还是中杯', via:'规则命中', rule:'幻觉命中', source:'生产回流', level:'P2', status:'已驳回', score:4.0},
+    {trace:'tr_f62e18', utter:'加一份小食', via:'规则命中', rule:'格式不合规', source:'生产回流', level:'P2', status:'待确认', score:3.9},
+    /* —— Judge 待验证：T+1 模型打分后回流，待人工确认 —— */
+    {trace:'tr_8f2a1c', utter:'帮我点一杯冰美式少冰', via:'Judge待验证', rule:'安全未拒答', suggest:'确认入集', source:'生产回流', level:'P0', status:'待确认', score:1.8},
+    {trace:'tr_b13f0a', utter:'推荐个好喝的', via:'Judge待验证', rule:'推荐不相关', suggest:'确认入集', source:'生产回流', level:'P0', status:'待确认', score:1.5},
+    {trace:'tr_7a90dd', utter:'我要退款昨天的订单', via:'Judge待验证', rule:'意图识别错误', suggest:'确认入集', source:'生产回流', level:'P1', status:'待确认', score:2.3},
+    {trace:'tr_c55e21', utter:'来杯热的拿铁', via:'Judge待验证', rule:'API 调用失败', suggest:'豁免', source:'生产回流', level:'P2', status:'已驳回', score:4.6},
+    {trace:'tr_3f8c09', utter:'有没有不含乳糖的', via:'Judge待验证', rule:'—', suggest:'豁免', source:'生产回流', level:'P2', status:'已驳回', score:4.1},
+    /* —— 转人工：Judge 无法判定，转人工处理 —— */
+    {trace:'tr_e21b44', utter:'预约明早取餐', via:'转人工', rule:'槽位缺失', suggest:'转人工', source:'生产回流', level:'P1', status:'待确认', score:3.4},
+  ],
+
+  /* Golden 集合：先定义集合，用例只能加入已定义的集合 */
+  goldenSets:[
+    {id:'gs_intent', name:'意图 Golden', desc:'意图识别基准用例'},
+    {id:'gs_tool',   name:'工具调用 Golden', desc:'工具选择与参数基准'},
+    {id:'gs_std',    name:'标准点单 Golden', desc:'标准正向点单流程'},
+  ],
+
+  /* Golden Dataset：黄金评测集（可从任一用例——Bad Case / 测试案例 / 候选池 / 生产回流——加入） */
+  golden:[
+    {id:'tr_8f2a1c', text:'帮我点一杯冰美式少冰', tag:'安全拒答', from:'Bad Case', set:'gs_intent', level:'P0', score:1.8, by:'莫文凯', at:'2026-07-18 14:22'},
+    {id:'gd_std001', text:'来一杯大杯燕麦拿铁，正常糖去冰', tag:'标准点单', from:'测试案例', set:'gs_std', level:'—', score:5.0, by:'许瑞霖', at:'2026-07-16 10:05'},
+    {id:'tr_4d9b7e', text:'我想订30杯奶茶', tag:'批量下单/槽位', from:'候选池', set:'gs_tool', level:'P0', score:2.1, by:'黄文凯', at:'2026-07-17 09:40'},
+    {id:'gd_std002', text:'推荐一款适合夏天的低卡饮品', tag:'推荐相关性', from:'测试案例', set:'gs_std', level:'—', score:4.6, by:'许瑞霖', at:'2026-07-15 16:30'},
+    {id:'tr_b13f0a', text:'推荐个好喝的', tag:'推荐相关性', from:'生产回流', set:'gs_intent', level:'P0', score:1.5, by:'莫文凯', at:'2026-07-18 14:25'},
+  ],
+
+  /* ── 测试集数据（对照截图1：17+ 分类 + prd_bad 2945 条）── */
+  /* prd_bad 表数据（截图1 原始 7 列） */
+  prdBadRaw:[
+    /* pc=问题大类  ss=细分场景  collection=归属的人工聚合集（我的集合） */
+    {source:'正式', variant:'默认', text:'R1: 这边都是帮不会点单嘛来这边吗……第一样早餐挺好的。R3: 第一杯美照照的好。R4: 来个夸夸。R5: 好吃光无…', tag:'意图/幻觉', score:2, level:'P0', pc:'安全', ss:'幻觉'},
+    {source:'正式', variant:'默认', text:'R1: 你好，我来继续你的R2……第一样早餐挺好的。R3: 换套餐试试这个产品。R4: 我就找到了这个产品。R5: 推荐了好多不…', tag:'意图/幻觉', score:3, level:'—', pc:'推荐', ss:'单店仅该推荐', collection:'单店推荐'},
+    {source:'正式', variant:'默认', text:'R1: 怎么点，来杯续命R2：暖胃饮品，再有点其它的。R3: 续命的吧。R4: 排队的吧。不要爱新奇的？', tag:'意图/幻觉', score:4, level:'—', pc:'推荐', ss:'已选门店推荐'},
+    {source:'正式', variant:'默认', text:'R1: 给我挑一样咖啡哈，好了打了好了。R2: 我还想要一模一样的。你可以品尝试看看我们的好？说真现在我看我的…', tag:'意图/幻觉', score:5, level:'—', pc:'忆念回忆', ss:'多轮上下文丢失'},
+    {source:'正式', variant:'默认', text:'R1: 哈哈哈谢谢啊嗯，好了打好了。R2: 加吧。R3: 好。', tag:'[意图]明确推荐', score:3, level:'—', pc:'推荐', ss:'单店仅该推荐', collection:'单店推荐'},
+    {source:'正式', variant:'默认', text:'R1: 5月19号大福超级福利日到了！您看到了 打开打好了。', tag:'超聊', score:3, level:'P2', pc:'玩笑话题', ss:'非严肃对话'},
+    {source:'正式', variant:'默认', text:'R1: 来一样一咖啡哈，有得没得啊。', tag:'[意图]推荐', score:6, level:'—', pc:'推荐', ss:'无门店/无优惠/无库存', collection:'门店无优惠'},
+    {source:'正式', variant:'默认', text:'R1: 样一样一冰冷的哈，有的话。R2: 我想看好的呀。有没有更真的的？', tag:'[意图]推荐', score:4, level:'—', pc:'推荐', ss:'已选门店推荐'},
+    {source:'正式', variant:'默认', text:'R1: 你好好请好好点哈。R3: 第一个呢。没有好的吗？', tag:'[意图]推荐', score:4, level:'—', pc:'槽位', ss:'槽位填充'},
+    {source:'正式', variant:'默认', text:'R1: 来一样巨巨巨R2：凉快一点哈。R3: 阿拉伯看R4：这还是蛮高的R5: 可以放小时间', tag:'[意图]明确推荐作序', score:5, level:'P1', pc:'推荐', ss:'已选门店推荐'},
+    {source:'正式', variant:'默认', text:'R1: 呢，继续我想我像想找你一样一…', tag:'[意图]推荐', score:6, level:'—', pc:'推荐', ss:'单店仅该推荐', collection:'单店推荐'},
+    {source:'正式', variant:'默认', text:'R1: 看上品的', tag:'[意图]推荐', score:6, level:'—', pc:'推荐', ss:'单店仅该推荐', collection:'单店推荐'},
+    {source:'正式', variant:'默认', text:'R1: 来一样巨巨巨R2：有得有得想推荐', tag:'[意图]推荐', score:6, level:'—', pc:'推荐', ss:'无门店/无优惠/无库存', collection:'门店无优惠'},
+    {source:'正式', variant:'默认', text:'R1: 要一样冰滴。R2: 有什么可以加的。', tag:'[意图]推荐', score:6, level:'—', pc:'推荐', ss:'已选门店推荐'},
+    {source:'正式', variant:'默认', text:'R1: 点杯春香的R2：是喜欢有料的；推荐到有啥喝的R4：下次买。', tag:'[意图]', score:6, level:'—', pc:'推荐', ss:'单店仅该推荐', collection:'单店推荐'},
+    {source:'正式', variant:'默认', text:'R1: 帮我结算这单，用券后总共多少？R2: 稍等…系统超时了', tag:'[意图]结算', score:2, level:'P2', pc:'结算', ss:'支付结算'},
+    {source:'正式', variant:'默认', text:'R1: 微信还是支付宝？R2: 我都可以，你帮我选个免密的', tag:'[意图]支付', score:3, level:'—', pc:'支付方式', ss:'支付方式'},
+    {source:'正式', variant:'默认', text:'R1: 附近的门店在哪？R2: 定位失败了，请手动选择', tag:'[意图]门店', score:2, level:'P1', pc:'门店位置', ss:'门店/位置'},
+    {source:'正式', variant:'默认', text:'R1: 这个月营业额多少？R2: 我不太清楚呢（事实误答）', tag:'[意图]营业额', score:1, level:'P0', pc:'营业额', ss:'营业数据误答'},
+    {source:'正式', variant:'默认', text:'R1: 你们有几种套餐？R2: 我们有…（格式乱码）', tag:'[意图]套餐', score:3, level:'—', pc:'套餐基础餐', ss:'套餐'},
+    {source:'eval失败', variant:'重试', text:'R1: 推荐一款咖啡R2: [API timeout] 调用商品服务失败', tag:'[意图]API', score:1, level:'P2', pc:'API异常', ss:'API调用失败'},
+  ],
+
+  /* 执行结果（对照截图3：14 列 × 166 条） */
+  execResults:[
+    {name:'【PI推荐集合】（1分结论设限未判定）', tag:['推荐','通过优先'], st:'通过优先', runSt:'运行优先', n:857, steps:1746, pending:0, notes:0, disputes:0, passRate:'98.19%', avgTime:27.46, token:185136, time:'2026-07-17 09:47:37'},
+    {name:'[成相关购物频道]', tag:['推荐','通过优先'], st:'通过优先', runSt:'运行优先', n:283, steps:677, pending:2, notes:0, disputes:0, passRate:'98.58%', avgTime:'34.8s', token:118618, time:'2026-07-17 09:45:12'},
+    {name:'[意如]小模型型测试-1.8', tag:['推荐'], st:'模型优先', runSt:'本跑测试', n:490, steps:857, pending:14, notes:0, disputes:0, passRate:'87.63%', avgTime:26.51, token:187406, time:'2026-07-17 09:23:46'},
+    {name:'[意如]小模型型测试-1.38', tag:['推荐'], st:'模型优先', runSt:'本跑测试', n:480, steps:836, pending:0, notes:0, disputes:0, passRate:'84.62%', avgTime:15.9, token:148338, time:'2026-07-17 10:22:19'},
+    {name:'支付执行异常测试', tag:['推荐'], st:'通过优先', runSt:'运行优先', n:10, steps:65, pending:0, notes:0, disputes:0, passRate:'100%', avgTime:'16.3s', token:74129, time:'2026-07-17 10:19:05'},
+    {name:'[推荐新测试]（内容非单纯旧相似）', tag:['推荐','通过优先'], st:'通过优先', runSt:'运行优先', n:205, steps:294, pending:0, notes:0, disputes:0, passRate:'100%', avgTime:23.89, token:831706, time:'2026-07-16 10:28:08'},
+    {name:'[PI推荐集合]7%：（纯样本，仅改数据）', tag:['推荐','通过优先'], st:'通过优先', runSt:'运行优先', n:807, steps:1639, pending:2, notes:0, disputes:0, passRate:'95.68%', avgTime:27.13, token:1338096, time:'2026-07-16 10:53:11'},
+    {name:'【代码】复现有挂起未复现-现_#22065071k', tag:['通过复现挂起'], st:'待判定', runSt:'待判定', n:0, steps:0, pending:0, notes:0, disputes:0, passRate:'0%', avgTime:'—', token:'—', time:'2026-07-16 10:43:01'},
+    {name:'[执行逻辑模拟]', tag:['推荐'], st:'本跑测试', runSt:'本跑测试', n:1, steps:3, pending:0, notes:0, disputes:0, passRate:'100%', avgTime:14.16, token:94096, time:'2026-07-16 10:38:39'},
+    {name:'[成多序列]能根据使用意图自动下推的属性存在失效', tag:['推荐'], st:'已停止', runSt:'已停止', n:37, steps:173, pending:0, notes:0, disputes:0, passRate:'94.22%', avgTime:25.86, token:99398, time:'2026-07-16 10:32:37'},
+    {name:'[成加和推荐]在了解下推的属性存在失效', tag:['推荐'], st:'已停止', runSt:'已停止', n:1, steps:6, pending:0, notes:0, disputes:0, passRate:'100%', avgTime:19.35, token:79398, time:'2026-07-16 10:28:46'},
+    {name:'[推荐算小模型测试]', tag:['推荐'], st:'通过优先', runSt:'运行优先', n:205, steps:294, pending:1, notes:0, disputes:0, passRate:'99.32%', avgTime:18.25, token:791308, time:'2026-07-16 10:44:59'},
+    {name:'[推荐算小模型]通了)', tag:['推荐'], st:'通过优先', runSt:'运行优先', n:490, steps:860, pending:2, notes:0, disputes:0, passRate:'92.33%', avgTime:23.15, token:686888, time:'2026-07-16 10:41:44'},
+    {name:'[推荐算小模型]退了)', tag:['推荐'], st:'已停止', runSt:'已停止', n:293, steps:802, pending:6, notes:0, disputes:0, passRate:'69.83%', avgTime:31.56, token:787898, time:'2026-07-16 10:41:55'},
+    {name:'[千问问]', tag:['推荐'], st:'已停止', runSt:'已停止', n:8, steps:24, pending:0, notes:0, disputes:0, passRate:'100%', avgTime:12.76, token:71436, time:'2026-07-16 10:49:10'},
+    {name:'[购物]（去*环境）', tag:['推荐','已停止'], st:'已停止', runSt:'已停止', n:1, steps:4, pending:0, notes:0, disputes:0, passRate:'0%', avgTime:'45.8s', token:'—', time:'2026-07-15 10:31:46'},
+  ],
+
+    /* 问题管理（对齐现状截图列名：ID/严重程度/问题描述/关联数量/验证状态/处理状态/创建人/更新人/更新时间/操作） */
+  issues:[
+    {id:92, sev:'严重', desc:'⚠️ 任务令 ⚠️', related:4, verifySt:'验证通过', processSt:'处理性', creator:'余密蜜', updater:'战恩宇', updTime:'2026-07-03 15:00:55'},
+    {id:447, sev:'一般', desc:'购物/细包内数据数据存在不一致。products 列表有 1 个商品但 totalCount 显示为 0', related:1, verifySt:'待验证', processSt:'修复性', creator:'罗静峰', updater:'—', updTime:'2026-07-20 17:22:32'},
+    {id:446, sev:'一般', desc:'成本：08模转与【提述本/求序】商品小+；翻翻划灯弄异', related:1, verifySt:'待验证', processSt:'修复性', creator:'战恩萍', updater:'—', updTime:'2026-07-20 16:28:34'},
+    {id:445, sev:'一般', desc:'用户说：还有问题的？；应该有看有的；前不厚重复看上一次应该有看有', related:1, verifySt:'待验证', processSt:'修复性', creator:'黄文凯', updater:'—', updTime:'2026-07-20 16:25:49'},
+    {id:444, sev:'一般', desc:'产量错误，因说的回管管理产告示一次、然然题解导号或者温遇，热小的来着列诸各题配，然然记本本日组翻翻', related:1, verifySt:'待验证', processSt:'修复性', creator:'黄文凯', updater:'—', updTime:'2026-07-20 16:23:19'},
+    {id:443, sev:'一般', desc:'产量问题：其况没如物成成、但留题能级级边', related:1, verifySt:'待验证', processSt:'修复性', creator:'黄文凯', updater:'—', updTime:'2026-07-20 16:22:37'},
+    {id:442, sev:'一般', desc:'用户问：复素是有县品品购的购但已交文目正题触，属于不公著的看营入口', related:1, verifySt:'待验证', processSt:'修复性', creator:'战恩萍', updater:'—', updTime:'2026-07-20 16:12:17'},
+    {id:441, sev:'一般', desc:'不通过：题题与与事者产量不对', related:1, verifySt:'待验证', processSt:'修复性', creator:'黄文凯', updater:'—', updTime:'2026-07-20 16:11:30'},
+    {id:440, sev:'一般', desc:'产重问题：买来无法取订，但应已的取高填单、愿出借购物车卡片', related:1, verifySt:'待验证', processSt:'修复性', creator:'黄文凯', updater:'—', updTime:'2026-07-20 16:10:08'},
+    {id:439, sev:'一般', desc:'客户输入/明确，系未将守可道题可题想（说明信息您感不确），直接回答客卡无规整整的不对好，后续用，用不用是整整题题', related:2, verifySt:'待验证', processSt:'修复性', creator:'黄文凯', updater:'—', updTime:'2026-07-20 16:06:38'},
+    {id:438, sev:'一般', desc:'产量错误：述不好的A式、个手消情度题题', related:1, verifySt:'待验证', processSt:'修复性', creator:'黄文凯', updater:'—', updTime:'2026-07-20 16:02:35'},
+    {id:437, sev:'一般', desc:'产量错误：述不好的A式、信出出个卡看是门过', related:1, verifySt:'待验证', processSt:'修复性', creator:'黄文凯', updater:'—', updTime:'2026-07-20 16:01:37'},
+    {id:436, sev:'一般', desc:'商品只已到购车，用户/容数载入购购物车，充题这述、楞题应该等看已入当品常留在购物车', related:1, verifySt:'待验证', processSt:'修复性', creator:'黄文凯', updater:'—', updTime:'2026-07-20 15:59:45'},
+    {id:435, sev:'一般', desc:'客户选门 ID 4790，系统工具商使使用方门 0 102', related:1, verifySt:'待验证', processSt:'修复性', creator:'罗静峰', updater:'—', updTime:'2026-07-20 15:53:42'},
+    {id:433, sev:'一般', desc:'visible_text 声音 6 部置信值 visible_components 中 ProductCartList 只有 5 数度值，存在产生明显实题一个…', related:1, verifySt:'一般性', processSt:'修复性', creator:'罗静峰', updater:'—', updTime:'2026-07-20 15:23:43'},
+    {id:431, sev:'一般', desc:'未来所有意图题，用户产热点，但题看来未到我台合符的的收成品，试域计中文增加意思', related:1, verifySt:'待验证', processSt:'修复性', creator:'黄文凯', updater:'—', updTime:'2026-07-17 18:34:18'},
+    {id:430, sev:'一般', desc:'【推荐错误】resume 用户名泄露出口 ID 127，系统工具需使使用门 ID 102', related:1, verifySt:'√/个', processSt:'修复性', creator:'余密蜜', updater:'—', updTime:'2026-07-17 18:26:06'},
+    {id:429, sev:'一般', desc:'该用户被锁解冻后，但查看仍有锁', related:1, verifySt:'待验证', processSt:'修复性', creator:'黄文凯', updater:'—', updTime:'2026-07-17 18:14:10'},
+    {id:428, sev:'一般', desc:'用户量暴增，但实现没扩容', related:1, verifySt:'待验证', processSt:'修复性', creator:'黄文凯', updater:'—', updTime:'2026-07-17 18:07:42'},
+    {id:427, sev:'一般', desc:'且最未时手手分比', related:1, verifySt:'待验证', processSt:'修复性', creator:'黄文凯', updater:'—', updTime:'2026-07-17 18:04:41'},
+  ],
+
+  batches:[
+    {name:'batch_20260720_03', ds:'prd_bad / v_20260720', n:48, pass:'94.2%', st:'已完成', cost:'3m12s'},
+    {name:'batch_20260720_02', ds:'prd_bad / v_20260720', n:48, pass:'92.8%', st:'已完成', cost:'3m05s'},
+    {name:'batch_20260720_01', ds:'golden / v_base', n:120, pass:'98.1%', st:'已完成', cost:'6m40s'},
+    {name:'batch_20260719_04', ds:'prd_bad / v_20260719', n:45, pass:'91.5%', st:'已完成', cost:'2m58s'},
+  ],
+
+  /* 自动化任务（生产回流飞轮后台定时任务，界面只读） */
+  jobs:[
+    {key:'capture', name:'① 全量抓取', desc:'从 Langfuse 拉取生产 trace 并归一化', cronText:'每小时 :00', last:'2026-07-20 15:00', next:'2026-07-20 16:00', status:'success', note:'处理 1284 条 trace'},
+    {key:'rule', name:'② 规则硬过滤', desc:'后台定时任务，只读跑硬规则，命中进候选池', cronText:'每日 02:00', last:'2026-07-20 02:00', next:'2026-07-21 02:00', status:'success', note:'命中 96 · 误报 13'},
+    {key:'judge', name:'③ T+1 Judge', desc:'自动 LLM-judge 对候选打分分流', cronText:'每日 03:00 (T+1)', last:'2026-07-20 03:10', next:'2026-07-21 03:00', status:'success', note:'确认 83 · 豁免 9 · 转人工 4'},
+    {key:'regress', name:'④ 回归批量运行', desc:'自动对 prd_bad 跑回归，出维度指标', cronText:'每日 06:00 / 版本触发', last:'2026-07-20 06:20', next:'2026-07-21 06:00', status:'running', note:'batch_20260720_03 进行中'},
+  ],
+  jobRuns:[
+    {time:'2026-07-20 15:00', job:'全量抓取', n:1284, result:'1284 条', st:'success'},
+    {time:'2026-07-20 06:20', job:'回归批量运行', n:48, result:'94.2%', st:'success'},
+    {time:'2026-07-20 03:10', job:'T+1 Judge 验证', n:96, result:'83 入集', st:'success'},
+    {time:'2026-07-20 02:00', job:'规则硬过滤', n:1284, result:'96 命中', st:'success'},
+    {time:'2026-07-19 02:00', job:'规则硬过滤', n:1196, result:'87 命中', st:'fail'},
+  ],
+
+  /* 多轮对话（评分详情 · 对话内容 Tab） */
+  turns:[
+    {
+      id:'R1', label:'R1', desc:'当前轮',
+      query:'帮我挑选一样消耗特需',
+      response:'好的，阿星已为你推荐 <b>1 样多味特需(甜)</b> 加入购物车。如需要调整口味可转特需咨询阿星',
+      extra:'阿星为你找到一款健康饮品，帝王乌龙底料配柠檬薄荷，清爽与质感交织',
+      score:null, scoreLabel:'',
+      viz:null
+    },
+    {
+      id:'R2', label:'R2', desc:'推荐菜单结果', tag:'推荐',
+      query:'',
+      response:'已为您挑选了【多味特需(甜)】，这款饮品采用新鲜水果现制，茶底选用上等茶叶，口感清爽不腻。夏天来一杯非常解渴哦～',
+      extra:'包含：多味特需(甜) × 1 · 大杯 · 正常糖 · 去冰',
+      score:23, scoreLabel:'¥23',
+      viz:{type:'product_card', title:'推荐菜单 ✦1', items:[
+        {img:'🧋', name:'多味特需(甜)', desc:'【当季热销】精选鲜果，入口清爽回甘。人气爆款，连续 8 周销量第一。不含咖啡因，适合全家享用。', tags:['热销','人气爆款','不含咖啡因'], price:'¥23', specs:'大杯 / 冰 / 正常糖'}
+      ]},
+      info:'【规则命中】用户已点过该商品且未加入购物车 · 【详情】materials id:0',
+      structTags:['查看原回复','对比','历史版本','工具调用','已采纳','推荐结果','订单确认']
+    },
+    {
+      id:'V0', label:'V0', desc:'历史轮次',
+      query:'',
+      viz:{type:'product_card', title:'多肉葡萄雪糕（组）', items:[
+        {img:'🍇', name:'多肉葡萄雪糕', desc:'【限定回归】当季葡萄手作果酱搭配浓郁芝士奶盖，酸甜适口。每日限量供应，售完即止。', tags:['限定','每日限量','芝士奶盖'], price:'¥20', specs:'标准杯 / 冰 / 少糖'}
+      ]},
+      response:'好的，已为您查询到多肉葡萄雪糕的详细信息。这款产品目前库存充足，您可以直接下单或加入购物车。',
+      extra:'商品ID: sku63081 / skuId_1179 / productId_8889',
+      score:20, scoreLabel:'¥20'
+    },
+    {
+      id:'V0-1', label:'', desc:'更早轮次',
+      query:'',
+      viz:{type:'simple_card', title:'多肉葡萄雪糕（组）', lines:[
+        '【热销推荐】葡萄 · 雪糕 · 少冰(推荐) · 少糖(推荐) · 不需要吸管',
+        '注意信息：细绳 sku63081 / skuId_1179 / productId_8889'
+      ]},
+      response:'已为您记录偏好设置，后续推荐会参考您的口味选择。',
+      score:17, scoreLabel:'¥17', smallScore:true
+    }
+  ]
+};
+
+const TOTAL_PRDBAD=2945, TOTAL_ISSUE=256;
+let TOTAL_BATCH=166;
+
+/* 全局圈选用例集：评测集浏览勾选 → 收拢为批次 */
+let SELECTED = [0,7,12].map(i=>({id:'cs_'+i, ...DATA.prdBadRaw[i]}));
+
+/* 全局 Golden Dataset：可从任一用例加入 */
+let GOLDEN = [...DATA.golden];
+/* Golden 集合：只有已定义的集合，用例打标时才能被选中 */
+let GOLDEN_SETS = [...DATA.goldenSets];
+let curGoldenSet = 'all';      // golden 页面当前筛选的集合
+let PENDING_GOLDEN = null;     // 待加入 golden 的用例（选择集合前暂存）
+function goldenSetName(id){const s=GOLDEN_SETS.find(x=>x.id===id);return s?s.name:'—';}
+function isSel(idx){return SELECTED.some(x=>x.id==='cs_'+idx);}
+function selCountHtml(){return `已选 <b>${SELECTED.length}</b> 条`;}
+function syncSel(){document.querySelectorAll('#selCount').forEach(e=>e.innerHTML=selCountHtml());}
+
+/* 评测集分类（顶部分面导航，替代左侧深树；最多 2 层 + 我的集合） */
+const DS_GROUPS=[
+  {key:'all', name:'全部样例'},
+  {key:'prod', name:'生产数据', subs:[
+    {key:'prd_bad', name:'prd_bad', count:2945, desc:'飞轮自动入集的 Bad Case 池'},
+    {key:'prod_q',  name:'生产数据查询', count:1284, desc:'按条件捞取的全量对话轨迹'},
+  ]},
+  {key:'test', name:'测试集', subs:[
+    {name:'推荐', count:2796},{name:'购物车'},{name:'结账'},{name:'餐厅式点餐'},{name:'订单'},{name:'门店方案'},{name:'门店套餐'},{name:'异常重播'},{name:'多轮对话', count:94},{name:'对比'},{name:'推理'},{name:'多意图理解'},{name:'比较类'},{name:'玩法'},{name:'营造场景题'},{name:'黄金场景题'},{name:'十大共性问题'},{name:'卡片推荐排序'},{name:'测试节点1'},{name:'测试节点2'},
+  ]},
+  {key:'coll', name:'我的集合', subs:[
+    {name:'门店无优惠', count:2, star:true},
+    {name:'单店推荐', count:5, star:true},
+  ]},
+];
+/* 分面维度：问题大类 → 细分场景（替代深树第 3~5 层的可组合下钻） */
+const DS_FACETS=[
+  {pc:'推荐', ss:['已选门店推荐','单店仅该推荐','无门店/无优惠/无库存']},
+  {pc:'槽位', ss:['槽位填充']},
+  {pc:'结算', ss:['支付结算']},
+  {pc:'支付方式', ss:['支付方式']},
+  {pc:'门店位置', ss:['门店/位置']},
+  {pc:'营业额', ss:['营业数据误答']},
+  {pc:'套餐基础餐', ss:['套餐']},
+  {pc:'忆念回忆', ss:['多轮上下文丢失']},
+  {pc:'比较', ss:['对比类']},
+  {pc:'玩笑话题', ss:['非严肃对话']},
+  {pc:'安全', ss:['幻觉','自言自语']},
+  {pc:'格式', ss:['格式错乱']},
+  {pc:'API异常', ss:['API调用失败']},
+];
+let dsGroup='prod', dsSub='prd_bad', dsPC=null, dsSS=null;
+function curDsGroup(){return DS_GROUPS.find(g=>g.key===dsGroup);}
+function curFacet(){return DS_FACETS.find(f=>f.pc===dsPC);}
+function curCountLabel(){
+  if(dsGroup==='prod'&&dsSub==='prd_bad')return TOTAL_PRDBAD;
+  if(dsGroup==='prod'&&dsSub==='生产数据查询')return 1284;
+  if(dsGroup==='all')return TOTAL_PRDBAD;
+  const g=curDsGroup(); if(g&&g.subs){const s=g.subs.find(x=>x.name===dsSub); if(s&&s.count!=null)return s.count;}
+  return '—';
+}
+function renderDsSelect(){
+  let opts='';
+  DS_GROUPS.forEach(g=>{
+    if(!g.subs){opts+=`<option value="${g.key}|" ${dsGroup===g.key?'selected':''}>${g.name}</option>`;}
+    else{opts+=`<optgroup label="${g.name}">`+g.subs.map(s=>`<option value="${g.key}|${s.name}" ${dsGroup===g.key&&dsSub===s.name?'selected':''}>${s.name}${s.count!=null?` (${s.count})`:''}</option>`).join('')+`</optgroup>`;}
+  });
+  return `<select onchange="selectDsCombo(this.value)">${opts}</select>`;
+}
+function selectDsCombo(v){const i=v.indexOf('|');const g=v.slice(0,i);const s=v.slice(i+1);dsGroup=g;dsSub=s||null;dsPC=null;dsSS=null;show('dataset-browser');}
+function setDsPC(pc){dsPC=pc; dsSS=null; show('dataset-browser');}
+function setDsSS(ss){dsSS=ss; show('dataset-browser');}
+function dsRows(){
+  let all=DATA.prdBadRaw;
+  if(dsPC)all=all.filter(r=>r.pc===dsPC);
+  if(dsSS)all=all.filter(r=>r.ss===dsSS);
+  const take=(dsGroup==='all'||dsGroup==='prod')?12:8;
+  return all.slice(0,take).map(r=>({
+    ...r,
+    tag:(dsGroup==='prod'&&dsSub==='prd_bad')?r.tag:(dsSub||curDsGroup().name),
+    _idx:DATA.prdBadRaw.indexOf(r)
+  }));
+}
+
+/* ════════════════════════════════════════════
+   工具函数
+   ════════════════════════════════════════════ */
+function sCls(v){return v>=4?'s-high':v>=3?'s-mid':'s-low';}
+function score(v){return `<span class="score ${sCls(v)}">${Number(v).toFixed(1)}</span>`;}
+function lvl(v){const c={P0:'lv-p0',P1:'lv-p1',P2:'lv-p2','—':'lv-n'}[v]||'lv-n';return `<span class="lv-badge ${c}">${v}</span>`;}
+function go(page){const el=document.querySelector(`.nav-item[data-page="${page}"]`);if(el)el.click();}
+
+/* 圈选用例：评测集浏览勾选 → 收拢为批次 */
+function toggleSelect(idx, ev){
+  const key='cs_'+idx;
+  const i=SELECTED.findIndex(x=>x.id===key);
+  if(ev.currentTarget.checked){ if(i<0) SELECTED.push({id:key, ...DATA.prdBadRaw[idx]}); }
+  else { if(i>=0) SELECTED.splice(i,1); }
+  syncSel();
+}
+function openNewBatch(){
+  if(SELECTED.length===0){ alert('请先在列表中勾选用例'); return; }
+  const d=new Date();
+  const p=n=>String(n).padStart(2,'0');
+  const sug=`batch_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
+  const root=document.getElementById('modalRoot');
+  root.innerHTML=`<div class="modal-mask" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-h">新建批次</div>
+      <div class="modal-b">
+        <div class="fld"><label>批次名称</label><input id="nbName" value="${sug}"></div>
+        <div class="fld"><label>数据集版本</label><select id="nbDs"><option>prd_bad / v_20260720</option><option>golden / v_base</option><option>推荐用例基 / v_rec</option></select></div>
+        <div class="fld"><label>收拢用例数</label><input id="nbN" value="${SELECTED.length}" readonly></div>
+        <div class="modal-hint">将把已勾选的 ${SELECTED.length} 条用例收拢为一个回归批次，并记入「批量运行」。</div>
+      </div>
+      <div class="modal-f"><button class="btn sm" onclick="closeModal()">取消</button><button class="btn sm primary" onclick="createBatch()">确认收拢</button></div>
+    </div></div>`;
+  root.style.display='block';
+}
+function closeModal(){const r=document.getElementById('modalRoot');r.style.display='none';r.innerHTML='';}
+function createBatch(){
+  const name=(document.getElementById('nbName').value||'batch_new').trim();
+  const ds=document.getElementById('nbDs').value;
+  const n=SELECTED.length;
+  DATA.batches.unshift({name, ds, n, pass:'—', st:'排队中', cost:'—'});
+  TOTAL_BATCH++;
+  const cleared=SELECTED.length;
+  SELECTED=[];
+  closeModal();
+  show('batch-run');
+}
+
+/* ════════════ Golden Dataset ════════════ */
+function toast(msg){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';document.body.appendChild(t);}
+  t.innerHTML=msg;
+  t.classList.add('show');
+  clearTimeout(window.__toastT);
+  window.__toastT=setTimeout(()=>t.classList.remove('show'),2200);
+}
+function updateGoldenBadge(){const b=document.getElementById('nav-golden');if(b)b.textContent=GOLDEN.length;}
+function nowStr(){const d=new Date();const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+/* ── 加入 Golden 统一入口：先暂存用例，再弹窗选择「已定义的集合」 ── */
+/* rec 可来自抽屉 CUR / bad case / 候选池 / 测试集行；records 为数组 */
+function queueGolden(records, from){
+  const list=(Array.isArray(records)?records:[records]).map(r=>({
+    id: r.id||r.trace||('gd_'+Math.abs(hashCode((r.text||r.utter||'')+Math.random()))),
+    text: r.text||r.utter||'（无语料）',
+    tag: r.tag||'—',
+    from: from||r.from||'手动加入',
+    level: r.level||r.pri||'—',
+    score: r.score!=null?r.score:'—',
+  }));
+  if(list.length===0){ toast('没有可加入的用例'); return; }
+  PENDING_GOLDEN={ list, from };
+  openGoldenPicker();
+}
+/* 选择目标集合的弹窗（只有已定义集合可选；无集合则引导先创建） */
+function openGoldenPicker(){
+  const p=PENDING_GOLDEN; if(!p) return;
+  const root=document.getElementById('modalRoot');
+  const hasSets=GOLDEN_SETS.length>0;
+  const setList=hasSets
+    ? GOLDEN_SETS.map((s,i)=>`<label class="gset-opt">
+        <input type="radio" name="gsPick" value="${s.id}" ${i===0?'checked':''}>
+        <span class="gset-opt-main"><span class="gset-opt-name">${s.name}</span><span class="gset-opt-desc">${s.desc||''}</span></span>
+        <span class="gset-opt-cnt">${GOLDEN.filter(g=>g.set===s.id).length} 条</span>
+      </label>`).join('')
+    : `<div class="modal-hint" style="color:var(--c-danger)">还没有任何 Golden 集合。请先创建一个集合（如「意图 Golden」「工具 Golden」），用例才能加入。</div>`;
+  root.innerHTML=`<div class="modal-mask" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-h">加入 Golden Dataset</div>
+      <div class="modal-b">
+        <div class="modal-hint">将加入 <b>${p.list.length}</b> 条用例，请选择目标集合：</div>
+        <div class="gset-picker">${setList}</div>
+        <div class="gset-inline">
+          <input id="gsNewInline" placeholder="新集合名称，如：意图 Golden">
+          <button class="btn sm" onclick="createGoldenSet(true)">＋ 新建集合</button>
+        </div>
+      </div>
+      <div class="modal-f"><button class="btn sm" onclick="closeModal()">取消</button>
+        <button class="btn sm primary" ${hasSets?'':'disabled style="opacity:.4;pointer-events:none"'} onclick="confirmAddGolden()">确认加入</button></div>
+    </div></div>`;
+  root.style.display='block';
+}
+/* 确认加入：读取所选集合，逐条去重后写入 */
+function confirmAddGolden(){
+  const p=PENDING_GOLDEN; if(!p) return;
+  const sel=document.querySelector('input[name="gsPick"]:checked');
+  if(!sel){ toast('请选择一个集合'); return; }
+  const setId=sel.value;
+  let added=0, dup=0;
+  p.list.forEach(r=>{
+    if(GOLDEN.some(g=>g.id===r.id||g.text===r.text)){ dup++; return; }
+    GOLDEN.unshift({...r, set:setId, by:'当前用户', at:nowStr()});
+    added++;
+  });
+  PENDING_GOLDEN=null;
+  closeModal();
+  updateGoldenBadge();
+  const setNm=goldenSetName(setId);
+  toast(`<span class="gd">★</span> 已加入 <b>${setNm}</b> ${added} 条${dup?`（${dup} 条已存在跳过）`:''}`);
+  if(CUR_PAGE==='golden'){ curGoldenSet=setId; show('golden'); }
+}
+/* 新建集合：returnToPicker=true 表示在加入弹窗里内联新建，建完刷新选择列表 */
+function openCreateGoldenSet(){
+  const root=document.getElementById('modalRoot');
+  root.innerHTML=`<div class="modal-mask" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-h">新建 Golden 集合</div>
+      <div class="modal-b">
+        <div class="fld"><label>集合名称</label><input id="gsName" placeholder="如：意图 Golden / 工具 Golden"></div>
+        <div class="fld"><label>说明（可选）</label><input id="gsDesc" placeholder="如：意图识别基准用例"></div>
+        <div class="modal-hint">集合创建后，用例在打标加入 Golden 时即可选择该集合。</div>
+      </div>
+      <div class="modal-f"><button class="btn sm" onclick="closeModal()">取消</button><button class="btn sm primary" onclick="createGoldenSet(false)">创建集合</button></div>
+    </div></div>`;
+  root.style.display='block';
+}
+function createGoldenSet(inPicker){
+  const inputId=inPicker?'gsNewInline':'gsName';
+  const el=document.getElementById(inputId);
+  const name=(el&&el.value||'').trim();
+  if(!name){ toast('请输入集合名称'); if(el)el.focus(); return; }
+  if(GOLDEN_SETS.some(s=>s.name===name)){ toast('⚠️ 已存在同名集合'); return; }
+  const id='gs_'+Math.abs(hashCode(name+Date.now()));
+  const desc=inPicker?'':((document.getElementById('gsDesc')||{}).value||'').trim();
+  GOLDEN_SETS.push({id, name, desc});
+  if(inPicker){
+    // 内联新建后，回到加入弹窗并自动选中新集合
+    openGoldenPicker();
+    const r=document.querySelector(`input[name="gsPick"][value="${id}"]`); if(r)r.checked=true;
+    toast(`已创建集合「${name}」`);
+  }else{
+    closeModal();
+    toast(`已创建集合「${name}」`);
+    if(CUR_PAGE==='golden'){ curGoldenSet=id; show('golden'); }
+  }
+}
+function selectGoldenSet(id){ curGoldenSet=id; show('golden'); }
+function addSelectedToGolden(){
+  if(SELECTED.length===0){ toast('请先在列表中勾选用例'); return; }
+  queueGolden(SELECTED.map(s=>({...s})), '测试案例');
+}
+function removeGolden(id){
+  GOLDEN=GOLDEN.filter(g=>g.id!==id);
+  updateGoldenBadge();
+  show('golden');
+}
+function addCurToGolden(){ queueGolden([CUR], CUR.from||'详情加入'); }
+
+/* ════════════════════════════════════════════
+   页面渲染函数
+   ════════════════════════════════════════════ */
+const PAGES={
+
+  /* ───────────── P0: Dashboard ───────────── */
+  dashboard:()=>`
+    <div class="page-head"><div class="page-title">Dashboard</div><div class="page-desc">生产回流飞轮每日运行态势 · phase 1 落地页</div></div>
+    <div class="metrics">
+      <div class="mcard"><div class="mlabel">今日抓取量</div><div class="mval">${DATA.capture.today}</div><div class="msub up">↑ 6.4% 较昨日</div></div>
+      <div class="mcard"><div class="mlabel">今日新增入集 <span class="tag gray">飞轮产出</span></div><div class="mval" style="color:var(--c-primary)">83</div><div class="msub up">↑ 9 条</div></div>
+      <div class="mcard"><div class="mlabel">待 Judge 验证 <span class="tag warn">候选池</span></div><div class="mval" style="color:var(--c-warning)">${DATA.candidates.filter(x=>x.via==='Judge待验证').length}</div><div class="msub">T+1 待模型打分</div></div>
+      <div class="mcard"><div class="mlabel">P0 待处理 <span class="tag p0">紧急</span></div><div class="mval" style="color:var(--c-p0)">${DATA.capture.p0}</div><div class="msub">今日必须闭环</div></div>
+    </div>
+    <div class="dash-row">
+      <div class="card">
+        <div class="card-h"><div class="t">近 7 天命中规则的 Case 统计</div><span class="tag ok">合计 ${DATA.ruleHitTrend.reduce((a,b)=>a+b,0)}</span></div>
+        <div class="card-b">${hitTrendSvg()}
+          <div class="mini-stats">
+            <div class="mini-stat"><div class="v">${DATA.ruleHitTrend.reduce((a,b)=>a+b,0)}</div><div class="l">7天合计</div></div>
+            <div class="mini-stat"><div class="v">${Math.round(DATA.ruleHitTrend.reduce((a,b)=>a+b,0)/7)}</div><div class="l">日均</div></div>
+            <div class="mini-stat"><div class="v">${Math.max(...DATA.ruleHitTrend)}</div><div class="l">最高</div></div>
+            <div class="mini-stat"><div class="v">${Math.min(...DATA.ruleHitTrend)}</div><div class="l">最低</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div class="t">Bad Case 构成</div><span class="tag gray">组成 + 总数量</span></div>
+        <div class="card-b">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div>${donutSvg(DATA.prodSource)}</div>
+            <div style="flex:1">
+              ${DATA.prodSource.map(s=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12.5px"><i style="width:10px;height:10px;border-radius:2px;background:${s.color};display:inline-block"></i><span>${s.label}</span><b style="margin-left:auto">${s.value}</b><span class="msub">${Math.round(s.value/DATA.regress.total*100)}%</span></div>`).join('')}
+            </div>
+          </div>
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--c-border)">
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span>Bad Case 总数量</span><b>${TOTAL_PRDBAD}</b></div>
+            <div class="msub" style="margin-top:2px">来源：生产回流 ${DATA.prodSource[0].value} · eval 失败 ${DATA.prodSource[1].value}</div>
+            <div class="msub" style="margin-top:2px">已纳入回归 ${DATA.regress.covered} / ${DATA.regress.total}</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div class="t">规则命中比率</div><span class="tag gray">prd_bad 池</span></div>
+        <div class="card-b">
+          <div style="display:flex;align-items:center;gap:16px">
+            ${donutSvg(DATA.badRule.mix.map(m=>({label:m.name,value:m.n,color:m.color})),132,DATA.badRule.hit,'规则命中')}
+            <div style="flex:1">
+              <div style="font-size:12px;margin-bottom:8px"><span style="color:var(--c-text);font-weight:600">规则命中 ${Math.round(DATA.badRule.hit/(DATA.badRule.hit+DATA.badRule.judge)*100)}%</span> · Judge 入集 ${Math.round(DATA.badRule.judge/(DATA.badRule.hit+DATA.badRule.judge)*100)}%</div>
+              ${DATA.badRule.mix.map(m=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px"><i style="width:9px;height:9px;border-radius:2px;background:${m.color};display:inline-block"></i><span style="flex:1">${m.name}</span><b style="margin-left:8px">${m.n}</b><span class="msub">${Math.round(m.n/DATA.badRule.hit*100)}%</span></div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="t">P0 待办</div><button class="btn sm">全部处理</button></div>
+      <div class="card-b" style="padding:0">
+        <table><thead><tr><th>trace_id</th><th>语料</th><th>来源</th><th>问题</th><th></th></tr></thead>
+        <tbody>${DATA.p0list.map(r=>`<tr onclick="openDrawer('${r.id}')"><td class="mono">${r.id}</td><td><span class="utt">${r.utter}</span></td><td>${r.from}</td><td>${r.why}</td><td style="text-align:right"><span class="btn sm">查看</span></td></tr>`).join('')}</tbody></table>
+      </div>
+    </div>`,
+
+  /* ───────────── P0: Trace监控 ───────────── */
+  capture:()=>`
+    <div class="page-head"><div class="page-title">Trace监控</div><div class="page-desc">全量 trace 落盘监测 · 当前生产共 ${TOTAL_PRDBAD} 条 Bad Case 沉淀</div>
+      <div class="actions"><button class="btn sm" onclick="refreshCap()">↻ 刷新</button><button class="btn sm primary">导出缺失补采</button></div></div>
+    <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+      <div class="mcard"><div class="mlabel">今日抓取量</div><div class="mval" id="cap-today">${DATA.capture.today}</div><div class="msub up">实时</div></div>
+      <div class="mcard"><div class="mlabel">落盘覆盖率</div><div class="mval">${DATA.capture.coverage}</div><div class="msub down">缺失约 ${Math.round(DATA.capture.today*(1-parseFloat(DATA.capture.coverage)/100))} 条待补采</div></div>
+      <div class="mcard"><div class="mlabel">规则命中率</div><div class="mval">${Math.round(DATA.capture.ruleHit/DATA.capture.today*100)}%</div><div class="msub">今日命中 ${DATA.capture.ruleHit} · 全量 ${DATA.capture.today}</div></div>
+      <div class="mcard"><div class="mlabel">待 Judge 验证 <span class="tag warn">候选池</span></div><div class="mval" style="color:var(--c-warning)">${DATA.candidates.filter(x=>x.via==='Judge待验证').length}</div><div class="msub">T+1 待模型打分</div></div>
+      <div class="mcard"><div class="mlabel">P0 待处理 <span class="tag p0">紧急</span></div><div class="mval" style="color:var(--c-p0)">${DATA.capture.p0}</div><div class="msub">今日必须闭环</div></div>
+      <div class="mcard"><div class="mlabel">今日告警</div><div class="mval" style="color:var(--c-warning)">${DATA.alerts.length}</div><div class="msub">待处理</div></div>
+    </div>
+      <div class="card">
+        <div class="card-h"><div class="t">告警列表</div></div>
+        <div class="card-b" style="padding:0">
+          <table><thead><tr><th>告警</th><th>级别</th><th>时间</th></tr></thead>
+          <tbody>${DATA.alerts.map(a=>`<tr><td>${a.t}</td><td><span class="tag ${a.lv==='err'?'err':'warn'}">${a.lv==='err'?'严重':'预警'}</span></td><td class="mono">${a.time}</td></tr>`).join('')}</tbody></table>
+        </div>
+      </div>
+    <div class="card">
+      <div class="card-h"><div class="t">各通道今日抓取量</div><span class="tag gray">合计 ${DATA.capture.today} 条 · 落盘率 ${DATA.capture.coverage}</span></div>
+      <div class="card-b" style="padding:0">
+        <table><thead><tr><th>通道</th><th>今日抓取量</th><th>占全量</th><th>落盘率</th><th>状态</th></tr></thead>
+        <tbody>${DATA.channels.map(c=>`<tr><td><b>${c.name}</b></td><td class="mono">${c.today}</td><td>${Math.round(c.today/DATA.capture.today*100)}%</td><td class="mono">${c.coverage}</td><td><span class="tag ${c.status==='正常'?'ok':'warn'}">${c.status}</span></td></tr>`).join('')}</tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="t">生产数据查询</div><span class="tag gray">全量对话轨迹</span></div>
+      <div class="card-b">
+        <div class="filter-row">
+          <input placeholder="trace_id / 会话ID / 用户ID" style="width:200px">
+          <select><option>全部渠道</option><option>点单</option><option>推荐</option><option>支付</option></select>
+          <input type="date" title="起始"><input type="date" title="结束">
+          <button class="btn sm primary">查询</button>
+        </div>
+        <div class="dim" style="padding:16px 0;text-align:center;font-size:12px">按条件捞取全量已落盘的生产对话轨迹，用于人工抽检与排查（与上方抓取监控共用同一通道数据）</div>
+      </div>
+    </div>`,
+
+  /* ───────────── P0: 规则过滤（每日运行结果，只读） ───────────── */
+  'rules-filter':()=>`
+    <div class="page-head"><div class="page-title">规则过滤 · 每日运行结果</div><div class="page-desc">后台定时任务每日批量运行硬过滤规则，命中即判不达标（免 Judge），界面不支持配置</div>
+      <div class="actions"><button class="btn sm">查看运行历史</button></div></div>
+    <div class="metrics">
+      <div class="mcard"><div class="mlabel">今日命中</div><div class="mval" style="color:var(--c-danger)">96</div><div class="msub">9 条规则合计</div></div>
+      <div class="mcard"><div class="mlabel">误报数</div><div class="mval">13</div><div class="msub down">误报率 13.5%</div></div>
+      <div class="mcard"><div class="mlabel">直接入集</div><div class="mval">83</div><div class="msub">免 Judge</div></div>
+      <div class="mcard"><div class="mlabel">转 Judge</div><div class="mval">13</div><div class="msub">待验证</div></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="t">硬过滤规则清单（${DATA.rules.length} 条 · 确定性）</div><span class="tag gray">免 Judge 即可判定</span></div>
+      <div class="card-b" style="padding:0">
+        <table><thead><tr><th>规则</th><th>触发条件</th><th>优先级</th><th>今日命中</th><th>误报</th><th>动作</th></tr></thead>
+        <tbody>${DATA.rules.map(r=>`<tr><td><b>${r.name}</b></td><td class="dim">${r.cond}</td><td>${r.lvl?`<span class="tag ${r.lvl==='P0'?'p0':r.lvl==='P1'?'p1':'p2'}">${r.lvl}</span>`:'<span class="tag gray">—</span>'}</td><td class="mono">${r.hit}</td><td class="mono">${r.mis}</td><td class="dim">${r.action}</td></tr>`).join('')}</tbody></table>
+      </div>
+    </div>`,
+
+  /* ───────────── Judge 验证已合并至「候选入池」评审台 ───────────── */
+
+  /* ───────────── P0: Bad Case 待办集（prd_bad 增强） ───────────── */
+  prdbad:()=>`
+    <div class="page-head"><div class="page-title">Bad Case 待办集</div><div class="page-desc">生产回流 + eval 失败 双源回流 · 当前共 ${TOTAL_PRDBAD} 条（prd_bad）</div>
+      <div class="actions"><button class="btn sm">+ 手动加入</button><button class="btn sm">导出</button><button class="btn sm">版本管理</button></div></div>
+    <div class="pills" id="ps-pills">
+      <div class="pill active" data-f="all">全部 <span class="cnt">${TOTAL_PRDBAD}</span></div>
+      <div class="pill" data-f="P0"><span class="flag">P0 安全</span> <span class="cnt">3</span></div>
+      <div class="pill" data-f="P1"><span class="flag">P1 意图</span> <span class="cnt">3</span></div>
+      <div class="pill" data-f="P2"><span class="flag">P2 推荐</span> <span class="cnt">2</span></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="t">待办集（版本 v_20260720）</div><span class="tag gray">trace_id 自动去重</span></div>
+      <div class="card-b" style="padding:0">
+        <table><thead><tr><th>trace_id</th><th>语料</th>
+          <th class="sortable" data-page="prdbad" data-key="pri" onclick="sortBy(this)">优先级<span class="sort"></span></th>
+          <th class="sortable" data-page="prdbad" data-key="retry" onclick="sortBy(this)">retry<span class="sort"></span></th>
+          <th>状态</th><th>来源</th>
+          <th class="sortable" data-page="prdbad" data-key="score" onclick="sortBy(this)">评分<span class="sort"></span></th><th></th></tr></thead>
+        <tbody id="ps-body">${pbRows('all')}</tbody></table>
+      </div>
+    </div>`,
+
+  /* ═══════════════════════════════════════
+     既有功能：测试集（顶部分面导航 + 右侧分面下钻，替代左侧深树）
+     对齐截图1：左侧深分类树 + 右侧数据表 → 扁平化：2 层分组 + 问题大类/细分场景分面
+     ═══════════════════════════════════════ */
+  'dataset-browser':()=>{
+    const gName=curDsGroup().name;
+    const head=dsSub||gName;
+    const facetNote=dsPC?`<div class="ds-facet-note">已按「<b style="color:var(--c-text)">${dsPC}</b>」下钻，命中 <b style="color:var(--c-primary)">${dsRows().length}</b> 条${dsSS?` · 当前场景「${dsSS}」`:' · 可继续选择细分场景缩小范围'}。</div>`:'';
+    return `
+    <div class="page-head"><div class="page-title">评测集浏览</div><div class="page-desc">测试集 / 生产数据 / prd_bad — 顶部分组切换 + 问题大类分面下钻</div>
+      <div class="actions"><span class="sel-count" id="selCount">${selCountHtml()}</span><button class="btn sm" onclick="addSelectedToGolden()"><span style="color:#BA7517">★</span> 加入 Golden</button><button class="btn sm primary" onclick="openNewBatch()">+ 新建批次</button><button class="btn sm">+ 新建测试集</button></div></div>
+    <div class="card">
+      <div class="card-b" style="padding:14px 16px">
+        <div class="ds-crumb">评测集 / <b>${gName}</b>${dsSub?` / <b>${dsSub}</b>`:''}${dsPC?` / <b>${dsPC}</b>`:''}${dsSS?` / <b>${dsSS}</b>`:''}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div><span style="font-weight:600;font-size:14px">📋 ${head}</span> <span class="tag gray">(${curCountLabel()})</span></div>
+          <div class="filter-row" style="margin:0">
+            ${renderDsSelect()}
+            <select><option>来源: 全部</option><option>生产回流</option><option>eval失败</option></select>
+            <select><option>标签: 全部</option><option>意图/幻觉</option><option>[意图]推荐</option></select>
+            <select><option>评分: 全部</option><option>1-2 低分</option><option>3 中等</option><option>4-5 高分</option></select>
+            <input placeholder="搜索语料...">
+          </div>
+        </div>
+        <div class="ds-facets">
+          <div class="facet-row">
+            <div class="facet-label">问题大类</div>
+            <div class="chips">
+              <span class="chip${!dsPC?' active':''}" onclick="setDsPC(null)">全部</span>
+              ${DS_FACETS.map(f=>`<span class="chip${dsPC===f.pc?' active':''}" onclick="setDsPC('${f.pc}')">${f.pc}</span>`).join('')}
+            </div>
+          </div>
+          ${dsPC?`<div class="facet-row">
+            <div class="facet-label">细分场景</div>
+            <div class="chips">
+              <span class="chip${!dsSS?' active':''}" onclick="setDsSS(null)">全部场景</span>
+              ${curFacet().ss.map(s=>`<span class="chip${dsSS===s?' active':''}" onclick="setDsSS('${s}')">${s}</span>`).join('')}
+            </div>
+          </div>`:''}
+          ${facetNote}
+        </div>
+        <table><thead><tr><th width="28"><input type="checkbox"></th><th>来源</th><th>变异</th><th>语料</th><th>标签</th>
+          <th class="sortable" data-page="dataset-browser" data-key="score" onclick="sortBy(this)">评分<span class="sort"></span></th>
+          <th class="sortable" data-page="dataset-browser" data-key="level" onclick="sortBy(this)">等级<span class="sort"></span></th><th width="48"></th></tr></thead>
+        <tbody>${dsRows().map(r=>`<tr onclick="openDrawer('tr_demo')">
+          <td><input type="checkbox" ${isSel(r._idx)?'checked':''} onclick="event.stopPropagation();toggleSelect(${r._idx},event)"></td>
+          <td>${r.source}</td><td>${r.variant}</td><td><span class="utt">${r.text}</span></td>
+          <td>${r.tag}</td><td>${score(r.score)}</td><td>${lvl(r.level)}</td>
+          <td style="text-align:right"><span class="btn sm">详情</span></td>
+        </tr>`).join('')}
+        <tr><td colspan="8" style="text-align:center;padding:10px;color:var(--c-text-3);font-size:12px">共 ${curCountLabel()} 条 &nbsp;&nbsp; 1 &nbsp; 2 &nbsp; 3 &nbsp; 4 &nbsp; 5 &nbsp; … &nbsp; 20条/页 &nbsp; 刷新</td></tr>
+        </tbody></table>
+      </div>
+    </div>`;
+  },
+
+  /* ═══════════════════════════════════════
+     既有功能：执行结果（完整 14 列）
+     对齐截图3：数据方案/用例筛选/批次选取 子 Tab
+     ═══════════════════════════════════════ */
+  'exec-results':()=>{
+    return `
+    <div class="page-head"><div class="page-title">执行结果</div><div class="page-desc">批量运行记录 · 共 ${TOTAL_BATCH} 批次</div></div>
+    <div class="sub-tabs">
+      <div class="sub-tab active">数据方案</div>
+      <div class="sub-tab">用例筛选</div>
+      <div class="sub-tab">批次选取</div>
+    </div>
+    <div class="filter-row">
+      <select><option>数据方案: 全部</option><option>推荐用例基</option><option>购物车基</option></select>
+      <select><option>执行状态: 全部</option><option>运行优先</option><option>本跑测试</option></select>
+      <input placeholder="搜索批次名称或ID...">
+      <button class="btn sm primary">🔍 刷新</button>
+      <button class="btn sm">⬇ 导出</button>
+    </div>
+    <div class="card">
+      <div class="card-b" style="padding:0">
+        <table><thead>
+          <tr><th width="28"><input type="checkbox"></th>
+          <th class="sortable" data-page="exec-results" data-key="name" onclick="sortBy(this)">批次名称<span class="sort"></span></th><th>标签</th><th>运行状态</th>
+          <th class="sortable" data-page="exec-results" data-key="n" onclick="sortBy(this)">用例数<span class="sort"></span></th><th>步骤数</th>
+          <th>待评审</th><th>备注数</th><th>待决议</th><th>执行行过滤</th>
+          <th class="sortable" data-page="exec-results" data-key="passRate" onclick="sortBy(this)">评分通过率<span class="sort"></span></th><th>平均耗时</th><th>平均Token</th>
+          <th class="sortable" data-page="exec-results" data-key="time" onclick="sortBy(this)">创建时间<span class="sort"></span></th><th width="48"></th></tr>
+        </thead>
+        <tbody>${DATA.execResults.map((r,i)=>`<tr onclick="toggleExpand(this)">
+          <td><input type="checkbox" onclick="event.stopPropagation()"></td>
+          <td style="color:var(--c-primary);font-weight:500">${r.name}</td>
+          <td>${r.tag.map(t=>`<span class="tag gray" style="margin-right:3px;font-size:10px">${t}</span>`).join('')}</td>
+          <td><span class="tag ${r.st.includes('通过')?'ok':r.st.includes('停止')?'err':'warn'}">${r.st}</span></td>
+          <td class="mono">${r.n}</td><td class="mono">${r.steps}</td>
+          <td class="mono">${r.pending}</td><td class="mono">${r.notes}</td><td class="mono">${r.disputes}</td>
+          <td class="mono">${r['执行行过滤']}</td>
+          <td>${passTag(r.passRate)}</td>
+          <td class="mono">${r.avgTime}</td><td class="mono">${r.token}</td>
+          <td class="mono" style="font-size:11px">${r.time}</td>
+          <td style="text-align:right"><span class="btn sm">[…]</span></td>
+        </tr>
+        <tr class="expand-row" id="exp-${i}"><td colspan="15" class="expand-cell">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div>
+              <div class="sec-title">指标明细</div>
+              <table style="font-size:11.5px"><thead><tr><th>指标</th><th>值</th><th>目标</th><th>状态</th></tr></thead><tbody>
+                <tr><td>格式合规</td><td>97.2%</td><td>≥98%</td><td><span class="tag warn">⚠</span></td></tr>
+                <tr><td>工具选择</td><td>82%</td><td>≥90%</td><td><span class="tag err">✗</span></td></tr>
+                <tr><td>幻觉率</td><td>4.2%</td><td>≤3%</td><td><span class="tag err">✗</span></td></tr>
+              </tbody></table>
+            </div>
+            <div>
+              <div class="sec-title">Top 失败 case</div>
+              <div style="font-size:12px;line-height:2">① tr_8f2a1c — 安全未拒答 <span class="btn sm">查看</span><br>② tr_b13f0a — 推荐不相关 <span class="btn sm">查看</span><br>③ tr_7a90dd — 槽位缺失 <span class="btn sm">查看</span></div>
+              <div style="margin-top:10px"><button class="btn sm primary" onclick="go('prdbad')">→ 跳转待办集定位</button></div>
+            </div>
+          </div>
+        </td></tr>`).join('')}</tbody></table>
+      </div>
+      <div style="padding:10px 18px;border-top:1px solid var(--c-border);font-size:12px;color:var(--c-text-3);text-align:center">共 ${TOTAL_BATCH} 条 &nbsp; 1 &nbsp; 2 &nbsp; ... &nbsp; 9 &nbsp; &nbsp; 📄</div>
+    </div>`;
+  },
+
+  /* ═══════════════════════════════════════
+     既有功能：问题管理（256 Issue）
+     对齐现状截图列名：ID/严重程度/问题描述/关联数量/验证状态/处理状态/创建人/更新人/更新时间/操作
+     ═══════════════════════════════════════ */
+  issues:()=>`
+    <div class="page-head"><div class="page-title">问题管理</div><div class="page-desc">Issue 追踪 · 共 ${TOTAL_ISSUE} 条</div>
+      <div class="actions"><button class="btn sm">刷新</button><button class="btn sm primary">导出</button></div></div>
+    <div class="filter-row">
+      <select><option>状态选择</option><option>全部</option><option>待处理</option><option>处理中</option><option>已解决</option></select>
+      <select><option>严重程度</option><option>全部</option><option>严重</option><option>一般</option></select>
+      <select><option>问题人</option><option>全部</option><option>黄文凯</option><option>莫文凯</option><option>罗静峰</option></select>
+      <select><option>创建人</option><option>全部</option><option>余密蜜</option><option>战恩萍</option><option>黄文凯</option></select>
+      <input type="date" title="排序日期" style="width:auto;min-width:130px">
+      <input type="date" title="排序日期" style="width:auto;min-width:130px">
+      <input placeholder="搜索问题描述/备注..." style="width:180px">
+      <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox"> 查看</label>
+      <button class="btn sm primary">🔍 查看</button>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="t">Issue 列表</div><span class="tag err">${TOTAL_ISSUE}</span></div>
+      <div class="card-b" style="padding:0">
+        <table><thead>
+          <tr><th class="sortable" data-page="issues" data-key="id" onclick="sortBy(this)">ID<span class="sort"></span></th>
+          <th class="sortable" data-page="issues" data-key="sev" onclick="sortBy(this)">严重程度<span class="sort"></span></th>
+          <th>问题描述</th><th>关联数量</th>
+          <th class="sortable" data-page="issues" data-key="verifySt" onclick="sortBy(this)">验证状态<span class="sort"></span></th>
+          <th class="sortable" data-page="issues" data-key="processSt" onclick="sortBy(this)">处理状态<span class="sort"></span></th>
+          <th>创建人</th><th>更新人</th>
+          <th class="sortable" data-page="issues" data-key="updTime" onclick="sortBy(this)">更新时间<span class="sort"></span></th><th width="60"></th></tr>
+        </thead>
+        <tbody>${DATA.issues.map(is=>`<tr>
+          <td class="mono">${is.id}</td>
+          <td><span class="tag ${is.sev==='严重'?'err':'warn'}">${is.sev==='严重'?'🔴':'🟡'}</span></td>
+          <td><span class="utt" style="max-width:260px">${is.desc}</span></td>
+          <td class="mono">${is.related}</td>
+          <td>${is.verifySt==='验证通过'?'<span class="tag ok">'+is.verifySt+'</span>':is.verifySt.includes('√')?'<span class="tag primary">'+is.verifySt+'</span>':'<span class="tag err">'+is.verifySt+'</span>'}</td>
+          <td><span class="tag warn">${is.processSt}</span></td>
+          <td>${is.creator}</td><td style="color:var(--c-text-3)">${is.updater}</td>
+          <td class="mono" style="font-size:11px">${is.updTime}</td>
+          <td style="text-align:right"><a href="#" style="font-size:12px;color:var(--c-primary);text-decoration:none" onclick="event.preventDefault();alert('查看 Issue #'+is.id+' 详情')">查看详情</a></td>
+        </tr>`).join('')}</tbody></table>
+      </div>
+      <div style="padding:10px 18px;border-top:1px solid var(--c-border);font-size:12px;color:var(--c-text-3);text-align:center">共 ${TOTAL_ISSUE} 条 &nbsp; 1 &nbsp; 2 &nbsp; ... &nbsp; 14 &nbsp; &nbsp; 尾页</div>
+    </div>`,
+
+  /* ───────────── 既有：规则配置（规则管理子Tab） ───────────── */
+
+  /* ───────────── 批量运行 ───────────── */
+  'batch-run':()=>{
+    const rj=DATA.jobs.find(j=>j.key==='regress');
+    const lb=DATA.batches[0];
+    const failed=DATA.jobRuns.filter(r=>r.st==='fail');
+    return `
+    <div class="page-head"><div class="page-title">批量运行</div><div class="page-desc">生产回流飞轮回归批次运行记录 · 自动化调度</div></div>
+    <div class="auto-strip">
+      <div class="as">上次调度<b>${rj.last}</b></div>
+      <div class="as">下次调度<b>${rj.next}</b></div>
+      <div class="as">调度周期<b>${rj.cronText}</b></div>
+      <div class="as">最近一次结果<b style="color:var(--c-success)">${lb.pass} · ${lb.st}</b></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="t">近期批次（共 ${TOTAL_BATCH} 次）</div><span class="tag ok">已接入 prd_bad 回归源</span></div>
+      <div class="card-b" style="padding:0">
+        <table><thead><tr><th>批次名</th><th>数据集版本</th><th>用例数</th><th>通过率</th><th>状态</th><th>耗时</th></tr></thead>
+        <tbody>${DATA.batches.map(b=>`<tr onclick="go('exec-results')"><td class="mono">${b.name}</td><td class="dim">${b.ds}</td><td class="mono">${b.n}</td><td>${passTag(b.pass)}</td><td>${stTag(b.st)}</td><td class="mono">${b.cost}</td></tr>`).join('')}</tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="t">运行异常 / 失败告警</div><span class="tag ${failed.length?'err':'ok'}">${failed.length?failed.length+' 条':'无'}</span></div>
+      <div class="card-b" style="padding:0">
+        ${failed.length?`<table><thead><tr><th>运行时间</th><th>任务</th><th>处理量</th><th>结果</th><th>状态</th></tr></thead><tbody>${failed.map(r=>`<tr><td class="mono">${r.time}</td><td class="dim">${r.job}</td><td class="mono">${r.n}</td><td>${r.result}</td><td>${jobStatusTag(r.st)}</td></tr>`).join('')}</tbody></table>`:`<div style="padding:18px 14px;color:var(--c-text-3);font-size:12.5px">当前无运行异常，最近批次均成功</div>`}
+      </div>
+    </div>`;
+  },
+
+  /* ───────────── 结果分析（瘦身版） ───────────── */
+  result:()=>`
+    <div class="page-head"><div class="page-title">结果分析</div><div class="page-desc">执行结果概览（14 列 → 6 列瘦身）· 共 ${TOTAL_BATCH} 批次</div></div>
+    <div class="card">
+      <div class="card-h"><div class="t">执行记录</div><span class="tag gray">点击「执行结果」查看完整 14 列</span></div>
+      <div class="card-b" style="padding:0">
+        <table><thead><tr><th>批次名</th><th>数据集版本</th><th>用例数</th><th>通过率</th><th>状态</th><th>耗时</th></tr></thead>
+        <tbody>${DATA.batches.map(r=>`<tr onclick="go('exec-results')"><td class="mono">${r.name}</td><td class="dim">${r.ds}</td><td class="mono">${r.n}</td><td>${passTag(r.pass)}</td><td>${stTag(r.st)}</td><td class="mono">${r.cost}</td></tr>`).join('')}</tbody></table>
+      </div>
+    </div>`,
+
+  /* ───────────── 规则引擎（后台定时任务只读） ───────────── */
+  'cfg-rules':()=>`<div class="page-head"><div class="page-title">自动化任务 · 生产回流飞轮</div><div class="page-desc">后台定时任务 · 界面只读，规则与调度由平台统一维护发版</div></div>
+    <div class="job-grid">
+      ${DATA.jobs.map(j=>`<div class="job-card">
+        <div class="jc-h"><span class="s-dot s-${j.status}"></span>${j.name}</div>
+        <div class="jc-cron">${j.cronText}</div>
+        <div class="jc-row"><span>上次运行</span><b>${j.last}</b></div>
+        <div class="jc-row"><span>下次运行</span><b>${j.next}</b></div>
+        <div class="jc-note">${jobStatusTag(j.status)} ${j.note}</div>
+      </div>`).join('')}
+    </div>
+    <div class="grid-2">
+      <div class="card"><div class="card-h"><div class="t">最近运行记录</div><span class="tag gray">近 ${DATA.jobRuns.length} 次</span></div>
+        <div class="card-b" style="padding:0"><table><thead><tr><th>运行时间</th><th>任务</th><th>处理量</th><th>结果</th><th>状态</th></tr></thead>
+        <tbody>${DATA.jobRuns.map(r=>`<tr><td class="mono">${r.time}</td><td class="dim">${r.job}</td><td class="mono">${r.n}</td><td>${r.result}</td><td>${jobStatusTag(r.st)}</td></tr>`).join('')}</tbody></table></div></div>
+      <div class="card"><div class="card-h"><div class="t">内置规则清单（只读）</div><span class="tag gray">不支持界面编辑</span></div>
+        <div class="card-b" style="padding:0"><table><thead><tr><th>规则</th><th>触发条件</th><th>优先级</th><th>今日命中</th></tr></thead>
+        <tbody>${DATA.rules.map(r=>`<tr><td><b>${r.name}</b></td><td class="dim">${r.cond}</td><td>${r.lvl?`<span class="tag ${r.lvl==='P0'?'p0':r.lvl==='P1'?'p1':'p2'}">${r.lvl}</span>`:'—'}</td><td class="mono">${r.hit}</td></tr>`).join('')}</tbody></table></div></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="t">失败告警</div><span class="tag ${DATA.alerts.some(a=>a.lv==='err')?'err':'ok'}">${DATA.alerts.length} 条</span></div>
+      <div class="card-b" style="padding:0">
+        ${DATA.alerts.map(a=>`<div class="alert-item"><span class="s-dot s-${a.lv==='err'?'fail':'idle'}"></span><span style="flex:1">${a.t}</span><span class="ai-time">${a.time}</span></div>`).join('')}
+      </div>
+    </div>`,
+
+  /* ───────────── Judge 配置 ───────────── */
+  'cfg-judge':()=>`<div class="page-head"><div class="page-title">Judge 配置</div><div class="page-desc">T+1 验证模型与三级分流阈值（参数化）</div></div><div class="card"><div class="card-b dim" style="line-height:1.8">
+    暂行阈值：<br>
+    • &lt; 2 分 → 确认入集（低分，高置信不达标）<br>
+    • &gt; 4 分 → 豁免（高分，高置信达标）<br>
+    • 2 ~ 4 分 → 转人工复核<br><br>
+    <span style="color:var(--c-warning)">⚠ 以上为暂行值，phase 2 校准目标值。</span>
+  </div></div>`,
+
+  /* ───────────── 标注台（占位） ───────────── */
+  label:()=>`<div class="page-head"><div class="page-title">标注台</div><div class="page-desc">人工复核与标注（phase 2 建设）</div></div>
+    <div class="card"><div class="card-b empty"><div class="empty-icon">🏷️</div><div>标注台为phase 2 需求</div><div style="margin-top:6px;color:var(--c-text-3)">本阶段通过评分抽屉的「人工复核」Tab 承载轻量复核</div></div></div>`,
+
+  /* ───────────── 候选入池 · 统一入集评审台（规则命中 + Judge 验证 归口） ───────────── */
+  candidate:()=>{
+    const c=DATA.candidates;
+    const cnt=s=>c.filter(x=>x.status===s).length;
+    const viaCnt=v=>c.filter(x=>x.via===v).length;
+    return `
+    <div class="page-head"><div class="page-title">候选入池 · 入集评审台</div><div class="page-desc">规则命中 + Judge 验证 统一归口 · 正式入 prd_bad 前的候补池（trace_id 去重）· 共 ${c.length} 条</div>
+      <div class="actions"><button class="btn sm primary">批量采纳入集</button><button class="btn sm">导出候选</button></div></div>
+    <div class="cand-bar">
+      <div class="cand-stat"><div class="n" style="color:var(--c-warning)">${cnt('待确认')}</div><div class="l">待确认</div></div>
+      <div class="cand-stat"><div class="n" style="color:var(--c-success)">${cnt('已采纳')}</div><div class="l">已采纳</div></div>
+      <div class="cand-stat"><div class="n" style="color:var(--c-text-3)">${cnt('已驳回')}</div><div class="l">已驳回</div></div>
+      <div class="cand-stat"><div class="n">${viaCnt('Judge待验证')}</div><div class="l">待 Judge 验证</div></div>
+    </div>
+    <div class="pills" id="cand-pills">
+      <div class="pill active" data-v="all" onclick="filterCandidates('all')">全部 <span class="cnt">${c.length}</span></div>
+      <div class="pill" data-v="规则命中" onclick="filterCandidates('规则命中')">规则命中 <span class="cnt">${viaCnt('规则命中')}</span></div>
+      <div class="pill" data-v="Judge待验证" onclick="filterCandidates('Judge待验证')">Judge 待验证 <span class="cnt">${viaCnt('Judge待验证')}</span></div>
+      <div class="pill" data-v="转人工" onclick="filterCandidates('转人工')">转人工 <span class="cnt">${viaCnt('转人工')}</span></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="t">候选列表</div><span class="tag gray">trace_id 去重</span></div>
+      <div class="card-b" style="padding:0">
+        <table><thead><tr>
+          <th>trace_id</th><th>语料</th><th>验证方式</th><th>命中规则 / 模型建议</th><th>来源</th>
+          <th class="sortable" data-page="candidate" data-key="level" onclick="sortBy(this)">候选等级<span class="sort"></span></th>
+          <th class="sortable" data-page="candidate" data-key="status" onclick="sortBy(this)">状态<span class="sort"></span></th>
+          <th></th></tr></thead>
+        <tbody id="cand-body">${candRows('all')}</tbody></table>
+      </div>
+    </div>`;
+  },
+
+  /* ───────────── Golden Dataset（黄金评测集） ───────────── */
+  golden:()=>{
+    const all=GOLDEN;
+    // 集合过滤
+    const g = curGoldenSet==='all' ? all : all.filter(x=>x.set===curGoldenSet);
+    const setCnt=id=>all.filter(x=>x.set===id).length;
+    const orphan=all.filter(x=>!x.set||!GOLDEN_SETS.some(s=>s.id===x.set)).length;
+    const tabs=`<div class="gset-tabs">
+      <div class="scope-group${curGoldenSet==='all'?' active':''}" onclick="selectGoldenSet('all')">全部 <span style="opacity:.7">${all.length}</span></div>
+      ${GOLDEN_SETS.map(s=>`<div class="scope-group${curGoldenSet===s.id?' active':''}" onclick="selectGoldenSet('${s.id}')" title="${s.desc||''}">${s.name} <span style="opacity:.7">${setCnt(s.id)}</span></div>`).join('')}
+      <div class="gset-new" onclick="openCreateGoldenSet()">＋ 新建集合</div>
+    </div>`;
+    const curSetObj=GOLDEN_SETS.find(s=>s.id===curGoldenSet);
+    const desc = curGoldenSet==='all'
+      ? `黄金评测集 · 稳定回归的基准用例 · 先创建集合，再从任一用例（Bad Case / 测试案例 / 候选池 / 生产回流）加入 · 共 ${all.length} 条 / ${GOLDEN_SETS.length} 个集合`
+      : `${curSetObj?curSetObj.name:''}${curSetObj&&curSetObj.desc?' · '+curSetObj.desc:''} · 共 ${g.length} 条`;
+    return `
+    <div class="page-head"><div class="page-title">Golden Dataset</div><div class="page-desc">${desc}</div>
+      <div class="actions"><button class="btn sm primary" onclick="openCreateGoldenSet()">＋ 新建集合</button><button class="btn sm" onclick="go('dataset-browser')">从测试集选取加入</button><button class="btn sm">导出</button></div></div>
+    ${tabs}
+    <div class="gd-bar">
+      <div class="gd-stat"><div class="n" style="color:#BA7517">${g.length}</div><div class="l">${curGoldenSet==='all'?'Golden 用例总数':'本集合用例数'}</div></div>
+      <div class="gd-stat"><div class="n" style="color:var(--c-danger)">${g.filter(x=>x.from==='Bad Case').length}</div><div class="l">来自 Bad Case</div></div>
+      <div class="gd-stat"><div class="n" style="color:var(--c-primary)">${g.filter(x=>x.from==='测试案例').length}</div><div class="l">来自测试案例</div></div>
+      <div class="gd-stat"><div class="n" style="color:var(--c-success)">${g.filter(x=>x.from==='候选池'||x.from==='生产回流').length}</div><div class="l">来自回流 / 候选池</div></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="t">黄金用例清单</div><span class="tag gray">加入即纳入该集合的回归基准</span></div>
+      <div class="card-b" style="padding:0">
+        <table><thead><tr>
+          <th>用例编号</th><th>语料</th><th>集合</th><th>标签</th><th>来源</th>
+          <th class="sortable" data-page="golden" data-key="level" onclick="sortBy(this)">等级<span class="sort"></span></th>
+          <th class="sortable" data-page="golden" data-key="score" onclick="sortBy(this)">基准分<span class="sort"></span></th>
+          <th>加入人</th><th>加入时间</th><th></th></tr></thead>
+        <tbody>${g.length===0
+          ? `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--c-text-3)">${GOLDEN_SETS.length===0?'还没有任何集合 —— 先点右上角「＋ 新建集合」（如「意图 Golden」），再从用例加入':'该集合暂无用例 —— 在任一列表点开详情后「★ 标 Golden」并选择本集合，或在测试集勾选后「加入 Golden」'}</td></tr>`
+          : g.map(r=>`<tr onclick="openDrawer('${r.id}')">
+          <td class="mono">${r.id}</td><td><span class="utt">${r.text}</span></td>
+          <td><span class="set-tag">${goldenSetName(r.set)}</span></td>
+          <td>${r.tag}</td><td><span class="from-tag">${r.from}</span></td>
+          <td>${r.level!=='—'?`<span class="tag ${r.level==='P0'?'p0':r.level==='P1'?'p1':'p2'}">${r.level}</span>`:'—'}</td>
+          <td>${r.score!=='—'?score(r.score):'—'}</td>
+          <td class="dim">${r.by}</td><td class="mono dim">${r.at}</td>
+          <td style="text-align:right"><span class="btn sm" onclick="event.stopPropagation();removeGolden('${r.id}')">移除</span></td>
+        </tr>`).join('')}</tbody></table>
+      </div>
+    </div>`;
+  },
+};
+
+/* ═══════════ 辅助渲染函数 ═══════════ */
+function passTag(p){const v=parseFloat(p);return `<span class="score ${v>=95?'s-high':v>=85?'s-mid':'s-low'}">${p}</span>`;}
+function stTag(s){const c=s==='已完成'?'ok':s==='排队中'?'warn':s==='运行中'?'primary':'gray';return `<span class="tag ${c}">${s}</span>`;}
+function jobStatusTag(s){const c=s==='success'?'ok':s==='running'?'primary':s==='fail'?'err':'gray';const t=s==='success'?'成功':s==='running'?'运行中':s==='fail'?'失败':'空闲';return `<span class="tag ${c}">${t}</span>`;}
+function pbRows(f){const rows=DATA.prdbad.filter(r=>f==='all'||r.pri===f);
+  return rows.map(r=>`<tr onclick="openDrawer('${r.trace}')">
+    <td class="mono">${r.trace}</td><td><span class="utt">${r.utter}</span></td>
+    <td><span class="tag ${r.pri==='P0'?'p0':r.pri==='P1'?'p1':'p2'}">${r.pri}</span></td>
+    <td class="mono">${r.retry}${r.retry>=3?' <span class="tag p0">顽固</span>':''}</td>
+    <td><span class="tag ${r.status.includes('待处理')?'err':r.status.includes('入集')?'ok':r.status.includes('人工')?'warn':'gray'}">${r.status}</span></td>
+    <td class="dim">${r.source==='eval失败'?'eval低分':r.source}</td><td>${score(r.score)}</td>
+    <td style="text-align:right"><span class="btn sm" onclick="event.stopPropagation();queueGolden([{id:'${r.trace}',text:'${r.utter}',tag:'Bad Case',level:'${r.pri}',score:${r.score}}],'Bad Case')"><span style="color:#BA7517">★</span> Golden</span> <span class="btn sm">详情</span></td></tr>`).join('');}
+
+function toggleExpand(tr){const n=tr.nextElementSibling;if(n&&n.classList.contains('expand-row'))n.classList.toggle('show');}
+
+function trendSvg(){const w=520,h=120,pad=10,max=100,min=88;
+  const pts=DATA.trend.map((v,i)=>{const x=pad+i*(w-2*pad)/(DATA.trend.length-1);const y=h-pad-((v-min)/(max-min))*(h-2*pad);return[x,y];});
+  const line=pts.map(p=>p.join(',')).join(' ');
+  const area=`${pad},${h-pad} `+line+` ${w-pad},${h-pad}`;
+  const dots=pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="var(--c-primary)"/><text x="${p[0]}" y="${p[1]-8}" font-size="9" fill="var(--c-text-3)" text-anchor="middle">${DATA.trend[i]}</text>`).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:140px"><polygon points="${area}" fill="var(--c-primary-bg)"/><polyline points="${line}" fill="none" stroke="var(--c-primary)" stroke-width="2"/>${dots}</svg>`;}
+
+function hitTrendSvg(){const data=DATA.ruleHitTrend,days=DATA.ruleHitDays;const w=360,h=124,pad=12,max=Math.max(...data)*1.18;const pts=data.map((v,i)=>{const x=pad+i*(w-2*pad)/(data.length-1);const y=h-pad-(v/max)*(h-2*pad);return[x,y];});const line=pts.map(p=>p.join(',')).join(' ');const area=`${pad},${h-pad} `+line+` ${w-pad},${h-pad}`;const dots=pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="var(--c-primary)"/><text x="${p[0]}" y="${p[1]-7}" font-size="9" fill="var(--c-text-3)" text-anchor="middle">${data[i]}</text>`).join('');const xlab=days.map((d,i)=>`<text x="${pad+i*(w-2*pad)/(data.length-1)}" y="${h-1}" font-size="8" fill="var(--c-text-3)" text-anchor="middle">${d.slice(3)}</text>`).join('');return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:130px"><polygon points="${area}" fill="var(--c-primary-bg)"/><polyline points="${line}" fill="none" stroke="var(--c-primary)" stroke-width="2"/>${dots}<text x="${pad}" y="10" font-size="9" fill="var(--c-text-3)">${max.toFixed(0)}</text>${xlab}</svg>`;}
+function donutSvg(segs,size=132,centerVal=null,centerSub='Bad Case'){
+  const total=segs.reduce((s,x)=>s+x.value,0);
+  const cx=size/2, cy=size/2, r=size/2-16, sw=16;
+  const cv=centerVal==null?total:centerVal;
+  let a0=-Math.PI/2, parts='';
+  segs.forEach(s=>{
+    const a1=a0+(s.value/total)*Math.PI*2;
+    const x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0);
+    const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+    const large=(a1-a0)>Math.PI?1:0;
+    parts+=`<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" stroke="${s.color}" stroke-width="${sw}"/>`;
+    a0=a1;
+  });
+  return `<svg viewBox="0 0 ${size} ${size}" style="width:${size}px;height:${size}px">${parts}
+    <text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="21" font-weight="700" fill="var(--c-text)">${cv}</text>
+    <text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="10" fill="var(--c-text-3)">${centerSub}</text></svg>`;
+}
+
+/* ═══════════ 交互逻辑 ═══════════ */
+let CUR_PAGE='dashboard';
+function show(page){
+  CUR_PAGE=page;
+  const main=document.getElementById('main');
+  if(!PAGES[page]){main.innerHTML=`<div class="empty" style="padding:60px">页面建设中: ${page}</div>`;return;}
+  main.innerHTML=PAGES[page]();
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
+  const nav=document.querySelector(`.nav-item[data-page="${page}"]`);
+  if(nav)document.getElementById('crumb').innerHTML=`Dashboard / <b>${nav.dataset.crumb||nav.textContent.trim()}</b>`;
+  window.scrollTo(0,0);
+  if(page==='prdbad')bindPills();
+  if(SORT_STATE.page===page){const th=document.querySelector(`th.sortable[data-key="${SORT_STATE.key}"]`);if(th)th.classList.add(SORT_STATE.dir);}
+}
+
+/* ── 表头排序（D8） ── */
+let SORT_STATE={page:null,key:null,dir:null};
+const SORT_ARR={
+  issues:()=>DATA.issues,
+  'exec-results':()=>DATA.execResults,
+  prdbad:()=>DATA.prdbad,
+  'dataset-browser':()=>DATA.prdBadRaw,
+  candidate:()=>DATA.candidates,
+  golden:()=>GOLDEN,
+};
+function sortBy(btn){
+  const page=btn.dataset.page, key=btn.dataset.key, arr=SORT_ARR[page];
+  if(!arr)return;
+  const dir=(SORT_STATE.key===key&&SORT_STATE.dir==='asc')?'desc':'asc';
+  SORT_STATE={page,key,dir};
+  arr.sort((a,b)=>{
+    let x=a[key], y=b[key];
+    if(x==null||y==null)return 0;
+    if(typeof x==='string') return dir==='asc'?String(x).localeCompare(String(y),'zh'):String(y).localeCompare(String(x),'zh');
+    return dir==='asc'? x-y : y-x;
+  });
+  show(page);
+}
+
+document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>show(n.dataset.page)));
+
+function bindPills(){document.querySelectorAll('#ps-pills .pill').forEach(p=>p.addEventListener('click',()=>{
+  document.querySelectorAll('#ps-pills .pill').forEach(x=>x.classList.remove('active'));p.classList.add('active');
+  document.getElementById('ps-body').innerHTML=pbRows(p.dataset.f);}));}
+function refreshCap(){const t=document.getElementById('cap-today');if(t)t.textContent=DATA.capture.today+Math.floor(Math.random()*20);}
+
+/* 候选入池：按验证方式筛选渲染 */
+function candRows(f){
+  const all=DATA.candidates;
+  const rows=f==='all'?all:all.filter(x=>x.via===f);
+  return rows.map(r=>`<tr onclick="openDrawer('${r.trace}')">
+    <td class="mono">${r.trace}</td>
+    <td><span class="utt">${r.utter}</span></td>
+    <td><span class="tag ${r.via==='规则命中'?'p2':r.via==='Judge待验证'?'warn':'p1'}">${r.via}</span></td>
+    <td>${r.rule!=='—'?`<b>${r.rule}</b> `:''}${r.suggest?`<span class="tag ${r.suggest==='确认入集'?'err':r.suggest==='豁免'?'gray':'warn'}">${r.suggest}</span>`:'<span class="dim">—</span>'}</td>
+    <td class="dim">${r.source}</td>
+    <td><span class="tag ${r.level==='P0'?'p0':r.level==='P1'?'p1':'p2'}">${r.level}</span></td>
+    <td><span class="tag ${r.status==='待确认'?'warn':r.status==='已采纳'?'ok':'gray'}">${r.status}</span></td>
+    <td style="text-align:right">${r.status==='待确认'?`<span class="btn sm" onclick="event.stopPropagation()">采纳</span> <span class="btn sm" onclick="event.stopPropagation()">驳回</span>`:`<span class="btn sm disabled">采纳</span> <span class="btn sm disabled">驳回</span>`}</td>
+  </tr>`).join('');
+}
+function filterCandidates(v){
+  document.querySelectorAll('#cand-pills .pill').forEach(x=>x.classList.remove('active'));
+  const cur=[...document.querySelectorAll('#cand-pills .pill')].find(p=>p.dataset.v===v);
+  if(cur)cur.classList.add('active');
+  const body=document.getElementById('cand-body');
+  if(body)body.innerHTML=candRows(v);
+}
+
+/* drawer */
+let CUR={};
+let DRAWER_LIST=[];
+let DRAWER_IDX=0;
+function hashCode(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;}return h;}
+function buildDrawerList(){
+  return [
+    ...DATA.p0list.map(x=>({...x,trace:x.id,pri:'P0',score:1.8,source:x.from,utter:x.utter})),
+    ...DATA.prdbad.map(x=>({...x})),
+    ...DATA.candidates.map(x=>({...x,pri:x.level})),
+    ...GOLDEN.map(x=>({trace:x.id,utter:x.text,pri:x.level,score:x.score==='—'?2.5:x.score,source:x.from,tag:x.tag,from:x.from})),
+  ];
+}
+function caseMeta(cur){
+  const seed=Math.abs(hashCode(cur.trace||''));
+  const self=cur.score!=null?cur.score:2.5;
+  const st=self>=4?'通过':(self>=2?'有争议':'不通过');
+  const stCls=self>=4?'ok':(self>=2?'warn':'err');
+  return {
+    no:'corpus-'+(seed%89999+10000),
+    label:'推荐用例'+cur.pri,
+    eid:'BZC'+(seed%900000+100000),
+    score:self, st, stCls,
+    judge:'莫文凯', time:'2026-07-17 15:31:45'
+  };
+}
+function jsonBlock(title, jsonStr){
+  return `<div class="json-block">
+    <div class="jb-head"><div class="jb-title">${title}</div><div class="jb-bar">
+      <span class="jb-btn" onclick="this.closest('.json-block').classList.toggle('collapsed')">收起</span>
+      <span class="jb-btn" onclick="this.closest('.json-block').querySelector('.jb-body').scrollTop(0)">顶</span>
+      <span class="jb-btn" onclick="toggleJsonSize(this)">缩</span>
+      <span class="jb-btn" onclick="this.closest('.json-block').classList.remove('collapsed')">展开</span>
+      <span class="jb-btn jb-copy" onclick="navigator.clipboard.writeText(this.closest('.json-block').dataset.raw);this.textContent='已复制'">复制</span>
+    </div></div>
+    <pre class="jb-body" data-raw="${jsonStr.replace(/"/g,'&quot;')}">${jsonStr}</pre>
+  </div>`;
+}
+function toggleJsonSize(btn){
+  const pre=btn.closest('.json-block').querySelector('.jb-body');
+  const isSmall=pre.style.fontSize==='10px';
+  pre.style.fontSize=isSmall?'':'10px';
+  pre.style.lineHeight=isSmall?'':'1.3';
+  btn.textContent=isSmall?'缩':'扩';
+}
+
+function renderConvTurns(){
+  const T=DATA.turns;
+  return `<div class="conv-turns">
+    ${T.map((tr,i)=>`<div class="ct-turn" data-idx="${i}">
+      <div class="ct-left">
+        <div class="ct-label">${tr.label?'<b>'+tr.label+'</b>':''}${tr.desc?((tr.label?' — ':'')+tr.desc):''}${tr.tag?' <span class="tag primary">'+tr.tag+'</span>':''}</div>
+        ${tr.query?`<div class="ct-query" onmouseenter="highlightResp(this)" onmouseleave="unhighlightResp(this)">${tr.query}</div>`:''}
+        ${tr.viz?renderViz(tr.viz):''}
+      </div>
+      <div class="ct-right" data-ridx="${i}" onmouseenter="highlightQuery(this)" onmouseleave="unhighlightQuery(this)">
+        <div class="ct-response">${tr.response}</div>
+        ${tr.extra?`<div class="ct-extra">${tr.extra}</div>`:''}
+        ${tr.score!==null&&tr.scoreLabel?`<div class="ct-score${tr.smallScore?' ct-score-sm':''}">${tr.scoreLabel}</div>`:''}
+      </div>
+      ${tr.info?`<div class="ct-info">${tr.info}</div>`:''}
+      ${tr.structTags?`<div class="ct-tags">${tr.structTags.map(t=>'<span class="ct-t">'+t+'</span>').join('')}</div>`:''}
+    </div>`).join('')}
+  </div>`;
+}
+
+function renderViz(v){
+  if(v.type==='product_card'){
+    return `<div class="ct-viz ct-viz-card">
+      <div class="vc-title">${v.title||'可见组件'}</div>
+      ${(v.items||[]).map(it=>`
+        <div class="vc-item">
+          <div class="vc-img">${it.img||''}</div>
+          <div class="vc-body">
+            <div class="vc-name"><b>${it.name}</b></div>
+            <div class="vc-desc">${it.desc}</div>
+            <div class="vc-tags">${(it.tags||[]).map(t=>'<span>'+t+'</span>').join(' ')}</div>
+            <div class="vc-meta"><span style="color:var(--c-danger);font-weight:700;font-size:14px">${it.price||''}</span>${it.specs?' · '+it.specs:''} &nbsp; 共1件</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+  if(v.type==='simple_card'){
+    return `<div class="ct-viz ct-viz-simple">
+      <div class="vcs-title">${v.title||''}</div>
+      ${(v.lines||[]).map(l=>`<div class="vcs-line">${l}</div>`).join('')}
+    </div>`;
+  }
+  return '';
+}
+
+/* highlight cross-turn interaction */
+function highlightResp(el){const r=el.closest('.ct-turn').querySelector('.ct-right');if(r)r.classList.add('ct-hl');}
+function unhighlightResp(el){const r=el.closest('.ct-turn').querySelector('.ct-right');if(r)r.classList.remove('ct-hl');}
+function highlightQuery(el){const q=el.closest('.ct-turn').querySelector('.ct-query,.ct-viz');if(q)q.classList.add('ct-hl');}
+function unhighlightQuery(el){const q=el.closest('.ct-turn').querySelector('.ct-query,.ct-viz');if(q)q.classList.remove('ct-hl');}
+
+
+function openDrawer(trace){
+  DRAWER_LIST=buildDrawerList();
+  DRAWER_IDX=DRAWER_LIST.findIndex(x=>x.trace===trace);
+  if(DRAWER_IDX<0)DRAWER_IDX=0;
+  renderDrawer(DRAWER_LIST[DRAWER_IDX]||{trace,utter:'（演示数据）',score:2.5,pri:'P1'});
+}
+function renderDrawer(cur){
+  CUR=cur;
+  document.getElementById('d-title').textContent='评分详情 · '+cur.trace;
+  const m=caseMeta(cur);
+  document.getElementById('d-meta').innerHTML=`
+    <div class="dmeta-item"><span class="k">用例编号</span><span class="v mono">${m.no}</span></div>
+    <div class="dmeta-item"><span class="k">标签</span><span class="v">${m.label}</span></div>
+    <div class="dmeta-item"><span class="k">FileId</span><span class="v mono">${m.eid}</span></div>
+    <div class="dmeta-item"><span class="k">自评分</span><span class="v"><span class="star">★</span>${m.score.toFixed(1)}</span></div>
+    <div class="dmeta-item"><span class="k">评分状态</span><span class="v"><span class="tag ${m.stCls}">${m.st}</span></span></div>
+    <div class="dmeta-item"><span class="k">计算评分人</span><span class="v">${m.judge}</span></div>
+    <div class="dmeta-item"><span class="k">创建时间</span><span class="v mono">${m.time}</span></div>`;
+  switchTab('conv');
+  const total=DRAWER_LIST.length||1;
+  document.getElementById('pgInfo').textContent=(DRAWER_IDX+1)+' / '+total;
+  document.getElementById('prevBtn').disabled=DRAWER_IDX<=0;
+  document.getElementById('nextBtn').disabled=DRAWER_IDX>=total-1;
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('drawer').classList.add('show');
+}
+function prevCase(){if(DRAWER_IDX>0){DRAWER_IDX--;renderDrawer(DRAWER_LIST[DRAWER_IDX]);}}
+function nextCase(){if(DRAWER_IDX<DRAWER_LIST.length-1){DRAWER_IDX++;renderDrawer(DRAWER_LIST[DRAWER_IDX]);}}
+function closeDrawer(){
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('drawer').classList.remove('show');
+}
+function switchTab(t){
+  document.querySelectorAll('.dtab').forEach(d=>d.classList.toggle('active',d.dataset.tab===t));
+  const b=document.getElementById('d-body');
+  if(t==='conv')b.innerHTML=renderConvTurns();
+  else if(t==='data')b.innerHTML=`
+    <div class="kv"><span class="k">trace_id</span><span class="mono">${CUR.trace}</span></div>
+    <div class="kv"><span class="k">优先级</span><span class="tag ${CUR.pri==='P0'?'p0':CUR.pri==='P1'?'p1':'p2'}">${CUR.pri}</span></div>
+    <div class="kv"><span class="k">来源</span><span>${CUR.source||'生产回流'}</span></div>
+    <div class="kv"><span class="k">fail_metrics</span><span>安全未拒答 / 意图识别</span></div>
+    <div class="kv"><span class="k">retry_count</span><span class="mono">${CUR.retry??3}</span></div>
+    <div class="kv"><span class="k">版本批次</span><span class="mono">v_20260720</span></div>
+    <div class="kv"><span class="k">shopId</span><span class="mono">182</span></div>
+    <div class="kv"><span class="k">总金额</span><span class="mono">0</span></div>
+    <div class="kv"><span class="k">W12</span><span class="mono">0</span></div>
+    <div class="kv"><span class="k">W11</span><span class="mono">90</span></div>
+    <div class="dish-detail">
+      <div class="dd-head"><div class="dd-name">🛒 推荐菜品 · 杨枝甘露超大杯</div><span class="tag ok">已采纳</span></div>
+      <div class="dd-row">
+        <div>规格：<b>大杯 / 冰 / 正常糖</b></div>
+        <div>单价：<b>¥22</b></div>
+        <div>渠道：<b>深圳某龙总店</b></div>
+        <div>shopId：<b class="mono">182</b></div>
+      </div>
+      <div class="dim" style="font-size:11.5px;margin:8px 0 2px">推荐标签</div>
+      <div class="tag-cloud">
+        <span class="ct">推荐</span><span class="ct">推荐菜品</span><span class="ct">排序</span>
+        <span class="ct">推荐菜1</span><span class="ct">超通</span><span class="ct">超Q</span><span class="ct">W2</span>
+      </div>
+    </div>`;
+  else if(t==='ai')b.innerHTML=`
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;color:var(--c-text-3);margin-bottom:6px">6维评分详情 &amp; 人工审核</div>
+      <div class="grid-2" style="gap:10px">
+        <div style="background:var(--c-surface-hover);border-radius:var(--radius-sm);padding:10px"><div style="display:flex;justify-content:space-between"><b>意图理解</b>${score(CUR.score??2.5)} <span class="tag ok">A+</span></div><div class="dim">用户意图识别正确，推荐符合预期</div></div>
+        <div style="background:var(--c-surface-hover);border-radius:var(--radius-sm);padding:10px"><div style="display:flex;justify-content:space-between"><b>上文理解</b>${score(4.2)} <span class="tag ok">A+</span></div><div class="dim">多轮对话上下文保持良好</div></div>
+        <div style="background:var(--c-surface-hover);border-radius:var(--radius-sm);padding:10px"><div style="display:flex;justify-content:space-between"><b>工具调用</b>${score(1.8)} <span class="tag err">✗ 不通过</span></div><div class="dim">工具选择错误，应调用 search_product 但调用了其他</div></div>
+        <div style="background:var(--c-surface-hover);border-radius:var(--radius-sm);padding:10px"><div style="display:flex;justify-content:space-between"><b>长期记忆</b>${score(3.0)} <span class="tag warn">⚠ 有争议</span></div><div class="dim">用户偏好记忆未正确加载</div></div>
+        <div style="background:var(--c-surface-hover);border-radius:var(--radius-sm);padding:10px"><div style="display:flex;justify-content:space-between"><b>回复完整性</b>${score(4.0)} <span class="tag ok">A+</span></div><div class="dim">信息完整，格式规范</div></div>
+        <div style="background:var(--c-surface-hover);border-radius:var(--radius-sm);padding:10px"><div style="display:flex;justify-content:space-between"><b>补充信息</b><span style="font-size:11px;color:var(--c-text-3)">—</span></div><div class="dim"></div></div>
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <div style="font-weight:600;margin-bottom:8px">综合判定</div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div>综合得分：</div>${score(CUR.score??2.5)}
+        <div style="font-size:12px;color:var(--c-text-3)">评分状态：</div>
+        <span class="tag err">✗ 不通过</span>
+        <span class="tag warn">⚠ 有争议</span>
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <div style="font-weight:600;margin-bottom:6px">整体备注信息</div>
+      <textarea style="width:100%;height:60px;border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:8px;font-family:inherit;font-size:12px;resize:none" placeholder="AI 整体备注…"></textarea>
+    </div>
+
+    <!-- ═══ 评分详情原始数据（对齐现状截图） ═══ -->
+    <div style="border-top:1px solid var(--c-border);padding-top:14px;margin-top:16px">
+      <!-- 消息原因 -->
+      <div class="sd-msg sd-msg-err">
+        【1】因您选择了需要验证 visible_components、tool_events、observations 字段的需要一致<br>
+        【2】用户只发送过技术性消息或推荐消息会与各字段 大部分时间返回都是空。我
+      </div>
+      <!-- 消息提示 -->
+      <div class="sd-msg sd-msg-err">
+        gpt3.5默认是不强制属性值检查不少外层键查看，但 visible_components 加额外卡片要求渲染的不为外层整体【详情】|materials id:0。该方法方案不一致，该选项用户的值直接覆盖从别的
+      </div>
+      <!-- 评分模型名称 -->
+      <div style="display:flex;align-items:center;gap:6px;margin:10px 0;font-size:12.5px">
+        <span style="color:var(--c-text-3)">评分模型名称</span>
+        <b>gpt3.5-6</b>
+      </div>
+      <!-- 请求 JSON -->
+      ${jsonBlock('请求', `{\n  "url": "https://test-go-4-api.hyexteogo.cpe.api/hyxteo-order-agent-react/api/agent/run/",\n  "runId": "run-72c47f49",\n  "shopId": "102",\n  "traceId": "${CUR.trace||'—'}",\n  "isTokenizey": "false",\n  "user_metrics_id": "7411",\n  "currentLocation": null,\n  "selectedAddress": "113.951664,22.59850",\n  "contextOverride": null\n}`)}
+      <!-- 参数概览 JSON -->
+      ${jsonBlock('参数概览', `{\n  "text": "你好，阿星已为你推 1 样三品菜单。加入购物车，并配置为另外外层值(像等)，左球来宝。",\n  "trace_id": "${CUR.trace||'—'}",\n  "run_events": [\n    {…} // 2 items\n  ]\n}`)}
+      <!-- 响应 JSON -->
+      ${jsonBlock('响应', `[\n  {…}, // 10 items\n  {…}, // 10 items\n  {…}, // 10 items\n  {…}, // 10 items\n  {…}, // 10 items\n  {…}, // 10 items\n  {…}, // 10 items\n  {…}, // 10 items\n  {…}, // 10 items\n  {…} // 10 items\n]`)}
+      <!-- 底部字段 -->
+      <div style="display:flex;gap:20px;margin-top:12px;font-size:11.5px;color:var(--c-text-3)">
+        <div><span style="color:var(--c-text-2);font-weight:600">prompt_name</span>&nbsp;<span class="mono">judge_v1_prompt</span></div>
+        <div><span style="color:var(--c-text-2);font-weight:600">scoring_prompt</span>&nbsp;<span class="mono dim">(hidden, length=${(128+Math.abs(hashCode(CUR.trace||''))%256)} chars)</span></div>
+      </div>
+    </div>`;
+  else b.innerHTML=`
+    <div class="track-field">
+      <div class="tf-label">人工复核意见</div>
+      <textarea placeholder="标注问题类型 / 根因 / 修复建议…"></textarea>
+    </div>
+    <div class="track-field">
+      <div class="tf-label">短期追踪 <span class="dim" style="font-weight:400">（修复上线后 1 周内观察是否复现）</span></div>
+      <textarea placeholder="如：已提 Issue #212，待 7-18 发版后复测…"></textarea>
+    </div>
+    <div class="track-field">
+      <div class="tf-label">预期追踪 <span class="dim" style="font-weight:400">（期望的回归结果）</span></div>
+      <textarea placeholder="如：该类意图推荐召回率提升至 ≥90%…"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn sm">确认 Bad Case</button><button class="btn sm" onclick="addCurToGolden()"><span style="color:#BA7517">★</span> 标为 Golden</button><button class="btn sm">退回重判</button>
+    </div>`;
+}
+
+/* ── 项目切换 ── */
+let CUR_PROJECT = DATA.projects[0];
+function renderProj(){
+  document.getElementById('projName').textContent = CUR_PROJECT;
+  document.getElementById('projSub').textContent = `当前项目（共 ${DATA.projects.length} 个项目）`;
+  document.getElementById('projMenu').innerHTML = DATA.projects.map(p=>
+    `<div class="proj-item ${p===CUR_PROJECT?'active':''}" data-p="${p}" onclick="switchProj(this,event)">${p}<span class="proj-check">✓</span></div>`
+  ).join('') + '<div class="proj-sep"></div><div class="proj-item proj-new" onclick="event.stopPropagation()">+ 新建项目</div>';
+}
+function toggleProj(e){e.stopPropagation();document.getElementById('proj').classList.toggle('open');}
+function switchProj(el,e){e.stopPropagation();CUR_PROJECT=el.dataset.p;renderProj();document.getElementById('proj').classList.remove('open');}
+document.addEventListener('click',()=>{const p=document.getElementById('proj');if(p)p.classList.remove('open');});
+
+/* init */
+renderProj();
+updateGoldenBadge();
+show('dashboard');
+</script>
+<div id="modalRoot"></div>
+</body>
+</html>
